@@ -91,7 +91,7 @@ WUPS_GET_CONFIG()
     for (int i = 1; i < 10; i++) {
         values[i].value = i;
         char* fmt = (char*) malloc(32);
-        snprintf(fmt, 32, "%02fs", i / 2.0f);
+        snprintf(fmt, 32, "%.1fs", i / 2.0f);
         values[i].valueName = fmt;
     }
     WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "remove_after", "Remove after", currentRemoveAfterOption, values, 10, removeAfterChangedCallback);
