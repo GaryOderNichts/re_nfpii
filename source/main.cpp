@@ -48,7 +48,7 @@ ON_APPLICATION_START()
 ON_APPLICATION_ENDS()
 {
     // Call finalize in case the application doesn't
-    nn::nfp::Finalize();
+    nn::nfp::tagManager.Finalize();
 }
 
 static void stateChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
