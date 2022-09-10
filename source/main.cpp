@@ -45,6 +45,12 @@ ON_APPLICATION_START()
     }
 }
 
+ON_APPLICATION_ENDS()
+{
+    // Call finalize in case the application doesn't
+    nn::nfp::Finalize();
+}
+
 static void stateChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
 {
     nn::nfp::tagManager.SetEmulationState((nn::nfp::TagManager::EmulationState) index);
