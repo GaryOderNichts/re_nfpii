@@ -8,6 +8,7 @@
 
 #include <coreinit/screen.h>
 #include <vpad/input.h>
+#include <padscore/kpad.h>
 
 #define MAX_AMIIBOS_PER_PAGE 14
 
@@ -84,28 +85,75 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
 
     drawSelectionMenu(currentIndex, item->selected, start, end, currentAmiibosPerPage, item->names);
 
-    VPADStatus vpad;
-    while (true) {
-        VPADRead(VPAD_CHAN_0, &vpad, 1, NULL);
+    VPADStatus vpad{};
+    VPADReadError vpadError;
+    KPADStatus kpad{};
+    KPADError kpadError;
 
-        if (vpad.trigger & VPAD_BUTTON_DOWN) {
+    while (true) {
+        uint32_t buttonsTriggered = 0;
+
+        VPADRead(VPAD_CHAN_0, &vpad, 1, &vpadError);
+        if (vpadError == VPAD_READ_SUCCESS) {
+            buttonsTriggered = vpad.trigger;
+        }
+
+        // read kpads and remap the buttons we need
+        for (int i = 0; i < 4; i++) {
+            if (KPADReadEx((KPADChan) i, &kpad, 1, &kpadError) > 0) {
+                if (kpadError != KPAD_ERROR_OK) {
+                    continue;
+                }
+
+                if (kpad.extensionType == WPAD_EXT_CORE || kpad.extensionType == WPAD_EXT_NUNCHUK ||
+                    kpad.extensionType == WPAD_EXT_MPLUS || kpad.extensionType == WPAD_EXT_MPLUS_NUNCHUK) {
+                    if (kpad.trigger & WPAD_BUTTON_DOWN) {
+                        buttonsTriggered |= VPAD_BUTTON_DOWN;
+                    }
+                    if (kpad.trigger & WPAD_BUTTON_UP) {
+                        buttonsTriggered |= VPAD_BUTTON_UP;
+                    }
+                    if (kpad.trigger & WPAD_BUTTON_A) {
+                        buttonsTriggered |= VPAD_BUTTON_A;
+                    }
+                    if (kpad.trigger & WPAD_BUTTON_B) {
+                        buttonsTriggered |= VPAD_BUTTON_B;
+                    }
+                } else {
+                    if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_DOWN) {
+                        buttonsTriggered |= VPAD_BUTTON_DOWN;
+                    }
+                    if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_UP) {
+                        buttonsTriggered |= VPAD_BUTTON_UP;
+                    }
+                    if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_A) {
+                        buttonsTriggered |= VPAD_BUTTON_A;
+                    }
+                    if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_B) {
+                        buttonsTriggered |= VPAD_BUTTON_B;
+                    }
+                }
+            }
+        }
+
+        if (buttonsTriggered & VPAD_BUTTON_DOWN) {
             if (currentIndex < amount - 1) {
                 drawSelectionMenu(++currentIndex, item->selected, start, end, currentAmiibosPerPage, item->names);
             }
         }
 
-        if (vpad.trigger & VPAD_BUTTON_UP) {
+        if (buttonsTriggered & VPAD_BUTTON_UP) {
             if (currentIndex > 0) {
                 drawSelectionMenu(--currentIndex, item->selected, start, end, currentAmiibosPerPage, item->names);
             }
         }
 
-        if (vpad.trigger & VPAD_BUTTON_A) {
+        if (buttonsTriggered & VPAD_BUTTON_A) {
             item->selected = currentIndex;
             drawSelectionMenu(currentIndex, item->selected, start, end, currentAmiibosPerPage, item->names);
         }
 
-        if (vpad.trigger & VPAD_BUTTON_B) {
+        if (buttonsTriggered & VPAD_BUTTON_B) {
             // calling this manually is bleh but that way the config entry gets updated immediately after returning
             ConfigItemSelectAmiibo_callCallback(item);
 

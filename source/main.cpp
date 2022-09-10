@@ -74,7 +74,7 @@ WUPS_GET_CONFIG()
     // }
 
     WUPSConfigHandle config;
-    WUPSConfig_CreateHandled(&config, "Amiibo Spoofer");
+    WUPSConfig_CreateHandled(&config, "re_nfpii");
 
     WUPSConfigCategoryHandle cat;
     WUPSConfig_AddCategoryByNameHandled(config, "Settings", &cat);
