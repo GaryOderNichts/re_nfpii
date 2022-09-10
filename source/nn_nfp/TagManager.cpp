@@ -1026,6 +1026,7 @@ void TagManager::HandleTagUpdates()
     if (pendingTagRemoveTime != 0) {
         if (OSGetTime() >= pendingTagRemoveTime) {
             pendingRemove = true;
+            pendingTagRemoveTime = 0;
             emulationState = EMULATION_OFF;
         }
     }
@@ -1050,6 +1051,14 @@ void TagManager::HandleTagUpdates()
             pendingTagRemoveTime = 0;
             emulationState = EMULATION_OFF;
         }
+    }
+}
+
+void TagManager::NotifyNFCGetTagInfo()
+{
+    // Set time once the tag should be removed, so it works properly in amiibo festival
+    if (pendingTagRemoveTime == 0 && removeAfterSeconds != 0.0f) {
+        pendingTagRemoveTime = OSGetTime() + OSNanosecondsToTicks(removeAfterSeconds * 1e9);
     }
 }
 

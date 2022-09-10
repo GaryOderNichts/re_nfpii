@@ -119,6 +119,8 @@ public: // custom
     Result LoadTag();
     void HandleTagUpdates();
 
+    void NotifyNFCGetTagInfo();
+
 private:
     // +0x0
     OSMutex mutex;
