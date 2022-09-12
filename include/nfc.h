@@ -21,8 +21,8 @@ struct NFCTagInfo
 {
     uint8_t uidSize;
     uint8_t uid[10];
-    uint8_t tag_type;
     uint8_t protocol;
+    uint8_t tag_type;
     WUT_PADDING_BYTES(0x20); // reserved
 };
 WUT_CHECK_SIZE(NFCTagInfo, 0x2d);

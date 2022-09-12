@@ -9,7 +9,7 @@
 
     TODO check if there are any other games doing this? */
 
-DECL_FUNCTION(NFCError, NFCGetTagInfo, uint32_t index, uint32_t unk, NFCTagInfoCallback callback, void* arg)
+DECL_FUNCTION(NFCError, NFCGetTagInfo, uint32_t index, uint32_t timeout, NFCTagInfoCallback callback, void* arg)
 {
     DEBUG_FUNCTION_LINE("NFCGetTagInfo");
 
@@ -36,7 +36,7 @@ DECL_FUNCTION(NFCError, NFCGetTagInfo, uint32_t index, uint32_t unk, NFCTagInfoC
         return NFC_ERR_GET_TAG_INFO;
     }
 
-    NFCTagInfo info;
+    NFCTagInfo info{};
     info.uidSize = 7;
     info.protocol = 0;
     info.tag_type = 2;
