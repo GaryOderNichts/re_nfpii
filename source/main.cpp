@@ -1,31 +1,22 @@
-#include <wups.h>
-#include <wups/config/WUPSConfigItemMultipleValues.h>
-#include <string>
-#include <map>
+#include <wums.h>
 
 #include <whb/libmanager.h>
 #include <whb/log_cafe.h>
 #include <whb/log_module.h>
 #include <whb/log_udp.h>
 
-#include "debug/logger.h"
-#include "nn_nfp/nn_nfp.hpp"
-#include "config/ConfigItemSelectAmiibo.hpp"
+#include <nfpii.h>
+#include <re_nfpii/re_nfpii.hpp>
 
-WUPS_PLUGIN_NAME("re_nfpii");
-WUPS_PLUGIN_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
-WUPS_PLUGIN_VERSION("v0.0.1");
-WUPS_PLUGIN_AUTHOR("GaryOderNichts");
-WUPS_PLUGIN_LICENSE("GPLv2");
+WUMS_MODULE_EXPORT_NAME("nn_nfp");
+WUMS_MODULE_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
+WUMS_MODULE_AUTHOR("GaryOderNichts");
+WUMS_MODULE_VERSION("v0.0.1");
+WUMS_MODULE_LICENSE("GPLv2");
 
-//WUPS_USE_STORAGE("re_nfpii");
-WUPS_USE_WUT_DEVOPTAB();
+WUMS_USE_WUT_DEVOPTAB();
 
-#define TAG_EMULATION_PATH std::string("/vol/external01/wiiu/re_nfpii/")
-
-uint32_t currentRemoveAfterOption = 0;
-
-INITIALIZE_PLUGIN()
+WUMS_INITIALIZE(myargs)
 {
     if (!WHBLogModuleInit()) {
         WHBLogCafeInit();
@@ -33,11 +24,7 @@ INITIALIZE_PLUGIN()
     }
 }
 
-DEINITIALIZE_PLUGIN()
-{
-}
-
-ON_APPLICATION_START()
+WUMS_APPLICATION_STARTS()
 {
     if (!WHBLogModuleInit()) {
         WHBLogCafeInit();
@@ -45,89 +32,69 @@ ON_APPLICATION_START()
     }
 }
 
-ON_APPLICATION_ENDS()
+WUMS_APPLICATION_ENDS()
 {
     // Call finalize in case the application doesn't
-    nn::nfp::tagManager.Finalize();
+    re::nfpii::tagManager.Finalize();
 }
 
-static void stateChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
+// custom exports for the configuration plugin
+bool NfpiiIsInitialized(void)
 {
-    nn::nfp::tagManager.SetEmulationState((nn::nfp::TagManager::EmulationState) index);
+    return re::nfpii::tagManager.IsInitialized();
 }
 
-static void removeAfterChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
+void NfpiiSetEmulationState(NfpiiEmulationState state)
 {
-    currentRemoveAfterOption = index;
-    nn::nfp::tagManager.SetRemoveAfterSeconds(index / 2.0f);
+    re::nfpii::tagManager.SetEmulationState(state);
 }
 
-static void uuidRandomizationChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
+NfpiiEmulationState NfpiiGetEmulationState(void)
 {
-    nn::nfp::tagManager.SetUUIDRandomizationState((nn::nfp::TagManager::UUIDRandomizationState) index);
+    return re::nfpii::tagManager.GetEmulationState();
 }
 
-static void amiiboSelectedCallback(ConfigItemSelectAmiibo* amiibos, const char* fileName)
+void NfpiiSetUUIDRandomizationState(NfpiiUUIDRandomizationState state)
 {
-    nn::nfp::tagManager.SetTagEmulationPath(TAG_EMULATION_PATH + fileName);
+    re::nfpii::tagManager.SetUUIDRandomizationState(state);
 }
 
-WUPS_GET_CONFIG()
+NfpiiUUIDRandomizationState NfpiiGetUUIDRandomizationState(void)
 {
-    // if (WUPS_OpenStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
-    //     DEBUG_FUNCTION_LINE("Failed to open storage");
-    //     return 0;
-    // }
+    return re::nfpii::tagManager.GetUUIDRandomizationState();
+}
 
-    WUPSConfigHandle config;
-    WUPSConfig_CreateHandled(&config, "re_nfpii");
+void NfpiiSetRemoveAfterSeconds(float seconds)
+{
+    re::nfpii::tagManager.SetRemoveAfterSeconds(seconds);
+}
 
-    WUPSConfigCategoryHandle cat;
-    WUPSConfig_AddCategoryByNameHandled(config, "Settings", &cat);
+void NfpiiSetTagEmulationPath(const char* path)
+{
+    re::nfpii::tagManager.SetTagEmulationPath(path);
+}
 
-    ConfigItemMultipleValuesPair values[10];
-    values[0].value = nn::nfp::TagManager::EMULATION_OFF;
-    values[0].valueName = (char*) "Emulation Disabled";
-    values[1].value = nn::nfp::TagManager::EMULATION_ON;
-    values[1].valueName = (char*) "Emulation Enabled";
-    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "state", "Set State", nn::nfp::tagManager.GetEmulationState(), values, 2, stateChangedCallback);
+const char* NfpiiGetTagEmulationPath(void)
+{
+    return re::nfpii::tagManager.GetTagEmulationPath().c_str();
+}
 
-    values[0].value = 0;
-    values[0].valueName = (char*) "Never";
-    for (int i = 1; i < 10; i++) {
-        values[i].value = i;
-        char* fmt = (char*) malloc(32);
-        snprintf(fmt, 32, "%.1fs", i / 2.0f);
-        values[i].valueName = fmt;
-    }
-    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "remove_after", "Remove after", currentRemoveAfterOption, values, 10, removeAfterChangedCallback);
-    for (int i = 1; i < 10; i++) {
-        free(values[i].valueName);
+bool NfpiiNotifyNFCGetTagInfo(void)
+{
+    if (re::nfpii::tagManager.GetEmulationState() == EMULATION_OFF) {
+        return false;
     }
 
-#if 0 //TODO
-    values[0].value = nn::nfp::TagManager::RANDOMIZATION_OFF;
-    values[0].valueName = (char*) "Off";
-    values[1].value = nn::nfp::TagManager::RANDOMIZATION_ONCE;
-    values[1].valueName = (char*) "Once";
-    values[2].value = nn::nfp::TagManager::RANDOMIZATION_EVERY_READ;
-    values[2].valueName = (char*) "After reading";
-    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "random_uuid", "Randomize UUID", nn::nfp::tagManager.GetUUIDRandomizationState(), values, 3, uuidRandomizationChangedCallback);
-#endif
-
-    std::string currentPath = nn::nfp::tagManager.GetTagEmulationPath();
-    if (currentPath.starts_with(TAG_EMULATION_PATH)) {
-        currentPath.erase(0, TAG_EMULATION_PATH.length());
-    }
-
-    ConfigItemSelectAmiibo_AddToCategoryHandled(config, cat, "select_amiibo", "Select Amiibo", TAG_EMULATION_PATH.c_str(), currentPath.c_str(), amiiboSelectedCallback);
-
-    return config;
+    re::nfpii::tagManager.NotifyNFCGetTagInfo();
+    return true;
 }
 
-WUPS_CONFIG_CLOSED()
-{
-    // if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
-    //     DEBUG_FUNCTION_LINE("Failed to close storage");
-    // }
-}
+WUMS_EXPORT_FUNCTION(NfpiiIsInitialized);
+WUMS_EXPORT_FUNCTION(NfpiiSetEmulationState);
+WUMS_EXPORT_FUNCTION(NfpiiGetEmulationState);
+WUMS_EXPORT_FUNCTION(NfpiiSetUUIDRandomizationState);
+WUMS_EXPORT_FUNCTION(NfpiiGetUUIDRandomizationState);
+WUMS_EXPORT_FUNCTION(NfpiiSetRemoveAfterSeconds);
+WUMS_EXPORT_FUNCTION(NfpiiSetTagEmulationPath);
+WUMS_EXPORT_FUNCTION(NfpiiGetTagEmulationPath);
+WUMS_EXPORT_FUNCTION(NfpiiNotifyNFCGetTagInfo);

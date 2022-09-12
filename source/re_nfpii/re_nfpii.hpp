@@ -8,7 +8,9 @@
 
 #include "debug/logger.h"
 
-namespace nn::nfp {
+namespace re::nfpii {
+using nn::Result;
+using namespace nn::nfp;
 
 extern TagManager tagManager;
 
@@ -55,4 +57,4 @@ void SetUuidCRC(uint32_t* crc);
 
 Result UpdateMii(FFLStoreData* data);
 
-} // namespace nn::nfp
+} // namespace re::nfpii

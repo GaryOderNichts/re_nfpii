@@ -9,7 +9,7 @@ Check the [compatibility list](https://github.com/GaryOderNichts/re_nfpii/wiki/C
 
 ## Usage
 - Download the artifacts of latest nightly build from [here](https://github.com/GaryOderNichts/re_nfpii/actions) (Requires a GitHub account).
-- Copy the `re_nfpii.wps` to the `plugins` folder of your target environment.
+- Copy the contents of the downloaded *`.zip`* file to your target environment.
 - Copy your (encrypted!) amiibo dumps to `wiiu/re_nfpii`.
 - Open the plugin configuration menu with L + Down + SELECT.
 - Select one of your amiibo and enable emulation.

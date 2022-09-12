@@ -8,9 +8,8 @@ endif
 
 TOPDIR ?= $(CURDIR)
 
-include $(DEVKITPRO)/wums/share/wums_rules
+include $(DEVKITPRO)/wups/share/wups_rules
 
-WUMS_ROOT := $(DEVKITPRO)/wums
 WUT_ROOT := $(DEVKITPRO)/wut
 #-------------------------------------------------------------------------------
 # TARGET is the name of the output
@@ -23,19 +22,19 @@ TARGET		:=	re_nfpii
 BUILD		:=	build
 SOURCES		:=	source \
 			source/config \
-			source/debug \
-			source/re_nfpii
+			source/debug
 DATA		:=	data
 INCLUDES	:=	include \
+			../include \
 			source
 
 #-------------------------------------------------------------------------------
 # options for code generation
 #-------------------------------------------------------------------------------
-CFLAGS	:=	-Wall -Os -ffunction-sections \
+CFLAGS	:=	-Wall -O2 -ffunction-sections \
 			$(MACHDEP)
 
-CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -DLOGGING
+CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -D__WUPS__ -DLOGGING
 
 CFLAGS	+=	-Wno-address-of-packed-member
 
@@ -43,15 +42,15 @@ CXXFLAGS	:= $(CFLAGS) -std=gnu++20
 CFLAGS	+=	-std=gnu11
 
 ASFLAGS	:=	$(ARCH)
-LDFLAGS	=	$(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) $(WUMSSPECS) 
+LDFLAGS	=	$(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) $(WUPSSPECS) 
 
-LIBS	:=	-lwums -lwut
+LIBS	:=	-lwups -lwut 
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
 # containing include and lib
 #-------------------------------------------------------------------------------
-LIBDIRS	:= $(PORTLIBS) $(WUMS_ROOT) $(WUT_ROOT)
+LIBDIRS	:= $(PORTLIBS) $(WUPS_ROOT) $(WUT_ROOT)
 
 #-------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -71,6 +70,7 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+DEFFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.def)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
 #-------------------------------------------------------------------------------
@@ -88,7 +88,7 @@ endif
 #-------------------------------------------------------------------------------
 
 export OFILES_BIN	:=	$(addsuffix .o,$(BINFILES))
-export OFILES_SRC	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+export OFILES_SRC	:=	$(DEFFILES:.def=.o) $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 export OFILES 	:=	$(OFILES_BIN) $(OFILES_SRC)
 export HFILES_BIN	:=	$(addsuffix .h,$(subst .,_,$(BINFILES)))
 
@@ -103,22 +103,14 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 #-------------------------------------------------------------------------------
 all: $(BUILD)
 
-dist: all
-	mkdir -p dist/modules/
-	cp *.wms dist/modules/
-	mkdir -p dist/plugins/
-	cp plugin/*.wps dist/plugins/
-
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
-	@$(MAKE) --no-print-directory -C $(CURDIR)/plugin -f $(CURDIR)/plugin/Makefile
 
 #-------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr dist $(BUILD) $(TARGET).wms $(TARGET).elf
-	@$(MAKE) --no-print-directory -C $(CURDIR)/plugin -f $(CURDIR)/plugin/Makefile clean
+	@rm -fr $(BUILD) $(TARGET).wps $(TARGET).elf
 
 #-------------------------------------------------------------------------------
 else
@@ -129,9 +121,9 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #-------------------------------------------------------------------------------
 # main targets
 #-------------------------------------------------------------------------------
-all	:	$(OUTPUT).wms
+all	:	$(OUTPUT).wps
 
-$(OUTPUT).wms	:	$(OUTPUT).elf
+$(OUTPUT).wps	:	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
 
 $(OFILES_SRC)	: $(HFILES_BIN)
@@ -143,6 +135,12 @@ $(OFILES_SRC)	: $(HFILES_BIN)
 #-------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	@$(bin2o)
+#-------------------------------------------------------------------------------
+%.o: %.def
+#-------------------------------------------------------------------------------
+	$(SILENTMSG) $(notdir $<)
+	$(SILENTCMD)rplimportgen $< $*.s $*.ld $(ERROR_FILTER)
+	$(SILENTCMD)$(CC) -x assembler-with-cpp $(ASFLAGS) -c $*.s -o $@ $(ERROR_FILTER)
 
 -include $(DEPENDS)
 

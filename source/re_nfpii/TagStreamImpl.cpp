@@ -1,9 +1,9 @@
 #include "TagStreamImpl.hpp"
-#include "nn_nfp.hpp"
+#include "re_nfpii.hpp"
 
 #include <cstring>
 
-namespace nn::nfp {
+namespace re::nfpii {
 
 TagStreamImpl::TagStreamImpl()
 {
@@ -109,4 +109,4 @@ Result TagStreamImpl::Clear()
     return tag->WriteDataBuffer(zeroes, info.offset, info.size);
 }
 
-} // namespace nn::nfp
+} // namespace re::nfpii

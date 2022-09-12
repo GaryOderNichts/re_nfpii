@@ -5,7 +5,9 @@
 
 #include <string>
 
-namespace nn::nfp {
+namespace re::nfpii {
+using nn::Result;
+using namespace nn::nfp;
 
 class Tag {
 public:
@@ -83,4 +85,4 @@ private: // custom
     std::string path;
 };
 
-} // namespace nn::nfp
+} // namespace re::nfpii

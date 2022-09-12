@@ -7,7 +7,11 @@
 #include <coreinit/mutex.h>
 #include <coreinit/event.h>
 
-namespace nn::nfp {
+#include <nfpii.h>
+
+namespace re::nfpii {
+using nn::Result;
+using namespace nn::nfp;
 
 class TagManager {
 public:
@@ -76,31 +80,20 @@ private:
     bool CheckRegisterInfo();
 
 public: // custom
-    enum EmulationState {
-        EMULATION_OFF,
-        EMULATION_ON
-    };
-
-    enum UUIDRandomizationState {
-        RANDOMIZATION_OFF,
-        RANDOMIZATION_ONCE,
-        RANDOMIZATION_EVERY_READ
-    };
-
-    void SetEmulationState(EmulationState state) {
+    void SetEmulationState(NfpiiEmulationState state) {
         emulationState = state;
         pendingRemove = state == EMULATION_OFF;
     }
 
-    EmulationState GetEmulationState() const {
+    NfpiiEmulationState GetEmulationState() const {
         return emulationState;
     }
 
-    void SetUUIDRandomizationState(UUIDRandomizationState state) {
+    void SetUUIDRandomizationState(NfpiiUUIDRandomizationState state) {
         uuidRandomizationState = state;
     }
 
-    UUIDRandomizationState GetUUIDRandomizationState() const {
+    NfpiiUUIDRandomizationState GetUUIDRandomizationState() const {
         return uuidRandomizationState;
     }
 
@@ -147,12 +140,12 @@ private:
     TagStream tagStream;
 
 private: // custom
-    EmulationState emulationState;
-    UUIDRandomizationState uuidRandomizationState;
+    NfpiiEmulationState emulationState;
+    NfpiiUUIDRandomizationState uuidRandomizationState;
     std::string tagEmulationPath;
     float removeAfterSeconds;
     bool pendingRemove;
     OSTime pendingTagRemoveTime;
 };
 
-} // namespace nn::nfp
+} // namespace re::nfpii

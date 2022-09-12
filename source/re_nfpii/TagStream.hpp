@@ -2,7 +2,9 @@
 
 #include <nn/nfp.h>
 
-namespace nn::nfp {
+namespace re::nfpii {
+using nn::Result;
+using namespace nn::nfp;
 
 // What the actual point of having this many different classes is, is beyond me
 // For rw to the tag that's now TagManager -> TagStream -> TagManager -> TagStreamImpl -> Tag
@@ -28,4 +30,4 @@ private:
     bool isOpened;
 };
 
-} // namespace nn::nfp
+} // namespace re::nfpii

@@ -10,8 +10,8 @@ jobs:
     - name: Build binary
       run: |
         docker build -t re_nfpii_builder .
-        docker run --rm -v ${PWD}:/project re_nfpii_builder make
+        docker run --rm -v ${PWD}:/project re_nfpii_builder make dist
     - uses: actions/upload-artifact@v2
       with:
        name: re_nfpii
-       path: "*.wps"
+       path: dist/*

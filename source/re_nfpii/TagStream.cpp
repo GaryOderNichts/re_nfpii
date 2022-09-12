@@ -1,7 +1,7 @@
 #include "TagStream.hpp"
-#include "nn_nfp.hpp"
+#include "re_nfpii.hpp"
 
-namespace nn::nfp {
+namespace re::nfpii {
 
 TagStream::TagStream()
 {
@@ -80,4 +80,4 @@ Result TagStream::Write(const void* data, uint32_t size)
     return tagManager.WriteStream(data, size);
 }
 
-} // namespace nn::nfp
+} // namespace re::nfpii

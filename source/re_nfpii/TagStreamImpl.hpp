@@ -2,7 +2,9 @@
 
 #include "Tag.hpp"
 
-namespace nn::nfp {
+namespace re::nfpii {
+using nn::Result;
+using namespace nn::nfp;
 
 class TagStreamImpl {
 public:
@@ -24,4 +26,4 @@ public:
     bool isOpened;
 };
 
-} // namespace nn::nfp
+} // namespace re::nfpii

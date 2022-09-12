@@ -1,12 +1,12 @@
 #include "Tag.hpp"
-#include "nn_nfp.hpp"
+#include "re_nfpii.hpp"
 #include "ntag_crypt.h"
 #include "debug/logger.h"
 
 #include <cstring>
 #include <coreinit/title.h>
 
-namespace nn::nfp {
+namespace re::nfpii {
 
 Tag::Tag()
 {
@@ -413,4 +413,4 @@ Result Tag::WriteTag(bool backup)
     return NFP_SUCCESS;
 }
 
-} // namespace nn::nfp
+} // namespace re::nfpii

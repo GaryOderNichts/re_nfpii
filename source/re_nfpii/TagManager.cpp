@@ -1,12 +1,12 @@
 #include "TagManager.hpp"
-#include "nn_nfp.hpp"
+#include "re_nfpii.hpp"
 #include "Lock.hpp"
 #include "ntag_crypt.h"
 #include "debug/logger.h"
 
 #include <cstring>
 
-namespace nn::nfp {
+namespace re::nfpii {
 
 TagManager::TagManager()
 {
@@ -142,7 +142,7 @@ Result TagManager::StartDetection()
 
     // If emulation isn't turned off load the tag
     if (emulationState != EMULATION_OFF) {
-        nn::Result res = nn::nfp::tagManager.LoadTag();
+        Result res = LoadTag();
         DEBUG_FUNCTION_LINE("LoadTag: %x", ((NNResult) res).value);
 
         // We still "succeed" on failure but turn off emulation
@@ -1034,7 +1034,7 @@ void TagManager::HandleTagUpdates()
     if (nfpState == NfpState::Searching) {
         // If emulation isn't turned off and we're searching, load the tag
         if (emulationState != EMULATION_OFF) {
-            nn::Result res = nn::nfp::tagManager.LoadTag();
+            Result res = LoadTag();
             DEBUG_FUNCTION_LINE("LoadTag: %x", ((NNResult) res).value);
 
             // We still "succeed" on failure but turn off emulation
@@ -1062,4 +1062,4 @@ void TagManager::NotifyNFCGetTagInfo()
     }
 }
 
-} // namespace nn::nfp
+} // namespace re::nfpii
