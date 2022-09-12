@@ -80,33 +80,45 @@ private:
     bool CheckRegisterInfo();
 
 public: // custom
-    void SetEmulationState(NfpiiEmulationState state) {
+    void SetEmulationState(NfpiiEmulationState state)
+    {
         emulationState = state;
         pendingRemove = state == EMULATION_OFF;
     }
 
-    NfpiiEmulationState GetEmulationState() const {
+    NfpiiEmulationState GetEmulationState() const
+    {
         return emulationState;
     }
 
-    void SetUUIDRandomizationState(NfpiiUUIDRandomizationState state) {
+    void SetUUIDRandomizationState(NfpiiUUIDRandomizationState state)
+    {
         uuidRandomizationState = state;
     }
 
-    NfpiiUUIDRandomizationState GetUUIDRandomizationState() const {
+    NfpiiUUIDRandomizationState GetUUIDRandomizationState() const
+    {
         return uuidRandomizationState;
     }
 
-    void SetTagEmulationPath(std::string path) {
+    void SetTagEmulationPath(std::string path)
+    {
         tagEmulationPath = path;
     }
 
-    std::string const& GetTagEmulationPath() const {
+    std::string const& GetTagEmulationPath() const
+    {
         return tagEmulationPath;
     }
 
-    void SetRemoveAfterSeconds(float secs) {
+    void SetRemoveAfterSeconds(float secs)
+    {
         this->removeAfterSeconds = secs;
+    }
+
+    void SetAmiiboSettings(bool inAmiiboSettings)
+    {
+        this->inAmiiboSettings = inAmiiboSettings;
     }
 
     Result LoadTag();
@@ -146,6 +158,9 @@ private: // custom
     float removeAfterSeconds;
     bool pendingRemove;
     OSTime pendingTagRemoveTime;
+
+    bool inAmiiboSettings;
+    OSTime amiiboSettingsReattachTimeout;
 };
 
 } // namespace re::nfpii

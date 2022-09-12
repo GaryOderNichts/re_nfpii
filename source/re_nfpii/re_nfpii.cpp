@@ -732,6 +732,33 @@ extern "C" {
     void __fini_wut_devoptab();
 }
 
+void OnCabinetEnter()
+{
+    // Need to dynload sysapp pointers while in an applet
+    loadSysappFunctionPointers();
+
+    __init_wut_devoptab();
+
+    tagManager.SetAmiiboSettings(true);
+}
+
+void OnCabinetLeave()
+{
+    tagManager.SetAmiiboSettings(false);
+
+    __fini_wut_devoptab();
+}
+
+void OnGameEnter()
+{
+    __init_wut_devoptab();
+}
+
+void OnGameLeave()
+{
+    __fini_wut_devoptab();
+}
+
 static void AmiiboSettingsDeserializationCallback(SYSDeserializeArg* arg, void* usrarg)
 {
     AmiiboSettingsArgs* amiiboArgs = (AmiiboSettingsArgs*) usrarg;
@@ -773,10 +800,7 @@ Result GetAmiiboSettingsArgs(AmiiboSettingsArgs* args)
 {
     DEBUG_FUNCTION_LINE("nn::nfp::GetAmiiboSettingsArgs");
 
-    // Load function pointers here since this is the first function the amiibo settings call
-    loadSysappFunctionPointers();
-
-    __init_wut_devoptab();
+    OnCabinetEnter();
 
     if (!args) {
         return NFP_INVALID_PARAM;
@@ -815,7 +839,7 @@ Result GetAmiiboSettingsResult(AmiiboSettingsResult* result, SYSArgDataBlock con
         return NFP_INVALID_PARAM;
     }
 
-    __init_wut_devoptab();
+    OnGameEnter();
 
     Initialize();
 
@@ -864,7 +888,7 @@ Result ReturnToCallerWithAmiiboSettingsResult(AmiiboSettingsResult const& result
 
     Finalize();
 
-    __fini_wut_devoptab();
+    OnCabinetLeave();
 
     if (dyn__SYSDirectlyReturnToCaller(&args) != 0) {
         return RESULT(0xa1b3e880);
@@ -936,7 +960,7 @@ Result SwitchToAmiiboSettings(AmiiboSettingsArgsIn const& args, const char* stan
 
     Finalize();
 
-    __fini_wut_devoptab();
+    OnGameLeave();
 
     // Switch to amiibo settings
     if (_SYSDirectlySwitchTo(SYSAPP_PFID_CABINETU) != 0) {
