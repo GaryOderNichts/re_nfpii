@@ -10,6 +10,7 @@
 #include <coreinit/time.h>
 #include <coreinit/memory.h>
 #include <coreinit/dynload.h>
+#include <coreinit/filesystem.h>
 #include <sysapp/args.h>
 #include <sysapp/switch.h>
 
@@ -289,11 +290,20 @@ Result UpdateMii(FFLStoreData* data)
     return NFP_SUCCESS;
 }
 
+void OnGameEnter();
+extern "C" FSClient* __wut_devoptab_fs_client;
+
 Result Initialize()
 {
     DEBUG_FUNCTION_LINE("nn::nfp::Initialize");
 
     // TODO initialize act
+
+    // Workaround for games like splatoon which don't call GetAmiiboSettingsResult after
+    // returning from amiibo settings
+    if (!__wut_devoptab_fs_client) {
+        OnGameEnter();
+    }
 
     return tagManager.Initialize();
 }
