@@ -38,7 +38,7 @@ public:
 
     Result Flush();
     Result Restore();
-    Result Format(const void* data, uint32_t size);
+    Result Format(const void* data, int32_t size);
 
     bool IsExistApplicationArea();
     Result CreateApplicationArea(ApplicationAreaCreateInfo const& createInfo);

@@ -389,7 +389,7 @@ Result Flush()
     return tagManager.Flush();
 }
 
-Result Format(const void* data, uint32_t size)
+Result Format(const void* data, int32_t size)
 {
     DEBUG_FUNCTION_LINE("nn::nfp::Format: %p %u", data, size);
 
@@ -489,7 +489,7 @@ Result GetNfpRomInfo(RomInfo* outRomInfo)
 
 Result GetNfpAdminInfo(AdminInfo* outAdminInfo)
 {
-    DEBUG_FUNCTION_LINE("Warning: nn::nfp::GetNfpAdminInfo not implemented!");
+    DEBUG_FUNCTION_LINE("nn::nfp::GetNfpAdminInfo");
 
     return tagManager.GetNfpAdminInfo(outAdminInfo);
 }

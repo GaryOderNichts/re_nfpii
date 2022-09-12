@@ -53,7 +53,7 @@ public:
 
     Result DeleteApplicationArea();
     Result DeleteRegisterInfo();
-    Result Format(NTAGData* data, void* appData, int32_t appDataSize);
+    Result Format(NTAGData* data, const void* appData, int32_t appDataSize);
     
     bool HasRegisterInfo();
     bool IsExistApplicationArea();

@@ -317,7 +317,7 @@ Result Tag::DeleteRegisterInfo()
     return NFP_SUCCESS;
 }
 
-Result Tag::Format(NTAGData* data, void* appData, int32_t appDataSize)
+Result Tag::Format(NTAGData* data, const void* appData, int32_t appDataSize)
 {
     if ((appDataSize > 1 && !appData) || appDataSize > 0xd8) {
         return NFP_INVALID_PARAM;

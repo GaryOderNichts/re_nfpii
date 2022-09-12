@@ -197,7 +197,7 @@ Result TagManager::StopDetection()
 
     // Set re-attach timeout to allow getting out of menus while in amiibo settings
     if (inAmiiboSettings) {
-        amiiboSettingsReattachTimeout = OSGetTime() + OSMillisecondsToTicks(1500);
+        amiiboSettingsReattachTimeout = OSGetTime() + OSMillisecondsToTicks(2000);
         emulationState = EMULATION_OFF;
     }
 
@@ -315,9 +315,11 @@ Result TagManager::Unmount()
     }
 
     // Since we can't open the configuration while in an applet
-    // we remove the tag after an unmount
+    // we signal a tag remove after an unmount
     if (inAmiiboSettings) {
-        Deactivate();
+        if (deactivateEvent) {
+            OSSignalEvent(deactivateEvent);
+        }
         amiiboSettingsReattachTimeout = OSGetTime() + OSMillisecondsToTicks(1500);
         emulationState = EMULATION_OFF;
     }
@@ -376,9 +378,9 @@ Result TagManager::Restore()
     return NFP_SUCCESS;
 }
 
-Result TagManager::Format(const void* data, uint32_t size)
+Result TagManager::Format(const void* data, int32_t size)
 {
-    if (!size || !data) {
+    if (size < 0 || !data) {
         return NFP_INVALID_PARAM;
     }
 
@@ -392,7 +394,18 @@ Result TagManager::Format(const void* data, uint32_t size)
         return NFP_INVALID_STATE;
     }
 
-    // TODO implement format
+    Result res = VerifyTagInfo();
+    if (res.IsFailure()) {
+        return res;
+    }
+
+    NTAGData* ntagData = tagStates[currentTagIndex].tag->GetData();
+    res = tag.Format(ntagData, data, size);
+    if (res.IsFailure()) {
+        return res;
+    }
+
+    tagStates[currentTagIndex].state = 0;
 
     return NFP_SUCCESS;
 }
