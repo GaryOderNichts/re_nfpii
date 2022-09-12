@@ -956,7 +956,7 @@ uint32_t GetErrorCode(nn::Result const& res)
     DEBUG_FUNCTION_LINE("nn::nfp::GetErrorCode");
 
     if (res.GetModule() == Result::RESULT_MODULE_NN_NFP && res.IsFailure()) {
-        return res.GetDescription() + 0x19a280;
+        return (res.GetDescription() >> 0x7) + 0x19a280;
     }
 
     return 0x19a280;
