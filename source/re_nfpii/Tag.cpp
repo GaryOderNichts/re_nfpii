@@ -1,4 +1,5 @@
 #include "Tag.hpp"
+#include "Utils.hpp"
 #include "re_nfpii.hpp"
 #include "ntag_crypt.h"
 #include "debug/logger.h"

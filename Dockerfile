@@ -8,7 +8,7 @@ mkdir wut && \
 cd wut && \
 git init . && \
 git remote add origin https://github.com/GaryOderNichts/wut.git && \
-git fetch --depth 1 origin 8312c14fc3c4be7fd729082e1b84fa60b86c2d65 && \
+git fetch --depth 1 origin 41846c77f62eb6a78214d5120f90f11e36f3127b && \
 git checkout FETCH_HEAD
 WORKDIR /wut
 RUN make -j$(nproc)

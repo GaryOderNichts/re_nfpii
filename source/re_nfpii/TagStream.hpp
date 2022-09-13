@@ -1,4 +1,5 @@
 #pragma once
+#include "Tag.hpp"
 
 #include <nn/nfp.h>
 
@@ -21,6 +22,21 @@ public:
 
     Result Read(void* data, uint32_t size);
     Result Write(const void* data, uint32_t size);
+
+    struct TagStreamImpl {
+        Result Open(uint32_t id);
+        Result Close();
+
+        Result Read(void* data, int32_t size);
+        Result Write(const void* data, uint32_t size);
+
+        Result Clear();
+
+        // +0x0
+        Tag* tag;
+        Tag::AppAreaInfo info;
+        bool isOpened;
+    };
 
 private:
     // +0x0

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <coreinit/mutex.h>
 #include <nn/nfp.h>
 #include <ntag.h>
 
@@ -33,28 +32,5 @@ extern TagManager tagManager;
 #define NFP_INVALID_PARAM               NFP_USAGE_RESULT(INVALID_PARAM) // 0xc1b03780
 #define NFP_INVALID_ALIGNMENT           NFP_USAGE_RESULT(INVALID_ALIGNMENT) // 0xc1b03800
 #define NFP_OUT_OF_RANGE                NFP_USAGE_RESULT(0x03700) // 0xc1b03700
-
-bool CheckZero(const void* data, uint32_t size);
-void GetRandom(void* data, uint32_t size);
-uint16_t IncreaseCount(uint16_t count, bool overflow);
-
-void ReadTagInfo(TagInfo* info, const NTAGData* data);
-void ReadCommonInfo(CommonInfo* info, const NTAGData* data);
-void ReadRegisterInfo(RegisterInfo* info, const NTAGData* data);
-void ReadReadOnlyInfo(ReadOnlyInfo* info, const NTAGData* data);
-void ReadAdminInfo(AdminInfo* info, const NTAGData* data);
-
-void ClearApplicationArea(NTAGData* data);
-void ClearRegisterInfo(NTAGData* data);
-
-Result SetCountryRegion(uint8_t* outCountryCode);
-uint16_t OSTimeToAmiiboTime(OSTime time);
-void ConvertAmiiboDate(Date* date, uint16_t time);
-bool CheckAmiiboMagic(NTAGData* data);
-
-bool CheckUuidCRC(NTAGInfo* info);
-void SetUuidCRC(uint32_t* crc);
-
-Result UpdateMii(FFLStoreData* data);
 
 } // namespace re::nfpii

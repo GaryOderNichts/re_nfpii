@@ -1,7 +1,6 @@
 #pragma once
 #include "Tag.hpp"
 #include "TagStream.hpp"
-#include "TagStreamImpl.hpp"
 
 #include <string>
 #include <coreinit/mutex.h>
@@ -146,7 +145,7 @@ private:
     bool readOnly;
 
     // +0x1d8
-    TagStreamImpl tagStreamImpl;
+    TagStream::TagStreamImpl tagStreamImpl;
     Tag* currentTag;
     Tag tag;
     TagStream tagStream;
