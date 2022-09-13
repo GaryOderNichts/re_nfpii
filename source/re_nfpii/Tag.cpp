@@ -2,6 +2,7 @@
 #include "re_nfpii.hpp"
 #include "ntag_crypt.h"
 #include "debug/logger.h"
+#include "utils/FSUtils.hpp"
 
 #include <cstring>
 #include <coreinit/title.h>
@@ -393,19 +394,11 @@ Result Tag::WriteTag(bool backup)
         return NFP_STATUS_RESULT(0x12345);
     }
 
-    FILE* f = fopen(path.c_str(), "wb");
-    if (!f) {
-        DEBUG_FUNCTION_LINE("Failed to open: %s", path.c_str());
+    int res = FSUtils::WriteToFile(path.c_str(), &raw, sizeof(raw));
+    if (res != sizeof(raw)) {
+        DEBUG_FUNCTION_LINE("Failed to write tag data to %s: %x", path.c_str(), res);
         return NFP_STATUS_RESULT(0x12345);
     }
-
-    if (fwrite(&raw, 1, sizeof(NTAGRawData), f) != sizeof(NTAGRawData)) {
-        fclose(f);
-        DEBUG_FUNCTION_LINE("Failed to write tag data");
-        return NFP_STATUS_RESULT(0x12345);
-    }
-
-    fclose(f);
 
     // copy the new encrypted raw data to the raw part
     memcpy(&ntagData.rawData, &raw, sizeof(raw));

@@ -14,8 +14,6 @@ WUMS_MODULE_AUTHOR("GaryOderNichts");
 WUMS_MODULE_VERSION("v0.0.1");
 WUMS_MODULE_LICENSE("GPLv2");
 
-WUMS_USE_WUT_DEVOPTAB();
-
 WUMS_INITIALIZE(myargs)
 {
     if (!WHBLogModuleInit()) {

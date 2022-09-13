@@ -3,6 +3,7 @@
 #include "Lock.hpp"
 #include "ntag_crypt.h"
 #include "debug/logger.h"
+#include "utils/FSUtils.hpp"
 
 #include <cstring>
 
@@ -54,6 +55,10 @@ Result TagManager::Initialize()
 
     // TODO ACPInitialize
 
+    // Initialize our custom FS utils here, since every game will have
+    // to call this, even after returning from amiibo settings
+    FSUtils::Initialize();
+
     SetNfpState(NfpState::Initialized);
 
     return NFP_SUCCESS;
@@ -68,6 +73,8 @@ Result TagManager::Finalize()
     }
 
     StopDetection();
+
+    FSUtils::Finalize();
 
     Reset();
 
@@ -996,22 +1003,19 @@ Result TagManager::LoadTag()
         return NFP_STATUS_RESULT(0x54321);
     }
 
-    FILE* f = fopen(tagEmulationPath.c_str(), "rb");
-    if (!f) {
-        DEBUG_FUNCTION_LINE("Failed to open: %s", tagEmulationPath.c_str());
+    // Don't bother loading a tag if no path was set
+    if (tagEmulationPath.empty()) {
         return NFP_STATUS_RESULT(0x12345);
     }
 
     // Read the tag
     NTAGRawData raw;
-    if (fread(&raw, 1, sizeof(raw), f) < 0x214) {
-        // We need at least everything up to the config bytes
-        DEBUG_FUNCTION_LINE("Failed to read tag data");
-        fclose(f);
-        return NFP_STATUS_RESULT(0x12345); 
+    int res = FSUtils::ReadFromFile(tagEmulationPath.c_str(), &raw, sizeof(raw));
+    // We need at least everything up to the config bytes
+    if (res < 0x214) {
+        DEBUG_FUNCTION_LINE("Failed to read tag data from %s: %x", tagEmulationPath.c_str(), res);
+        return NFP_STATUS_RESULT(0x12345);
     }
-
-    fclose(f);
 
     // Decrypt the tag
     NTAGData data;

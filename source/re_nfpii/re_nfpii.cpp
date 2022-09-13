@@ -11,6 +11,7 @@
 #include <coreinit/memory.h>
 #include <coreinit/dynload.h>
 #include <coreinit/filesystem.h>
+#include <coreinit/title.h>
 #include <sysapp/args.h>
 #include <sysapp/switch.h>
 
@@ -290,20 +291,11 @@ Result UpdateMii(FFLStoreData* data)
     return NFP_SUCCESS;
 }
 
-void OnGameEnter();
-extern "C" FSClient* __wut_devoptab_fs_client;
-
 Result Initialize()
 {
     DEBUG_FUNCTION_LINE("nn::nfp::Initialize");
 
     // TODO initialize act
-
-    // Workaround for games like splatoon which don't call GetAmiiboSettingsResult after
-    // returning from amiibo settings
-    if (!__wut_devoptab_fs_client) {
-        OnGameEnter();
-    }
 
     return tagManager.Initialize();
 }
@@ -736,18 +728,10 @@ static void loadSysappFunctionPointers()
     OSDynLoad_FindExport(sysappModule, FALSE, "_SYSDeserializeStandardArg", (void**) &dyn__SYSDeserializeStandardArg);
 }
 
-// We need to re-init the devoptab when switching between applet and game
-extern "C" {
-    void __init_wut_devoptab();
-    void __fini_wut_devoptab();
-}
-
 void OnCabinetEnter()
 {
     // Need to dynload sysapp pointers while in an applet
     loadSysappFunctionPointers();
-
-    __init_wut_devoptab();
 
     tagManager.SetAmiiboSettings(true);
 }
@@ -755,18 +739,6 @@ void OnCabinetEnter()
 void OnCabinetLeave()
 {
     tagManager.SetAmiiboSettings(false);
-
-    __fini_wut_devoptab();
-}
-
-void OnGameEnter()
-{
-    __init_wut_devoptab();
-}
-
-void OnGameLeave()
-{
-    __fini_wut_devoptab();
 }
 
 static void AmiiboSettingsDeserializationCallback(SYSDeserializeArg* arg, void* usrarg)
@@ -848,8 +820,6 @@ Result GetAmiiboSettingsResult(AmiiboSettingsResult* result, SYSArgDataBlock con
     if (!result) {
         return NFP_INVALID_PARAM;
     }
-
-    OnGameEnter();
 
     Initialize();
 
@@ -969,8 +939,6 @@ Result SwitchToAmiiboSettings(AmiiboSettingsArgsIn const& args, const char* stan
     }
 
     Finalize();
-
-    OnGameLeave();
 
     // Switch to amiibo settings
     if (_SYSDirectlySwitchTo(SYSAPP_PFID_CABINETU) != 0) {

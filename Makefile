@@ -24,7 +24,8 @@ BUILD		:=	build
 SOURCES		:=	source \
 			source/config \
 			source/debug \
-			source/re_nfpii
+			source/re_nfpii \
+			source/utils
 DATA		:=	data
 INCLUDES	:=	include \
 			source
