@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
+#include <algorithm>
 
 #include <coreinit/screen.h>
 #include <vpad/input.h>
@@ -232,20 +233,29 @@ bool ConfigItemSelectAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const ch
         while ((ent = readdir(amiiboDir)) != NULL) {
             if (ent->d_type & DT_REG) {
                 item->fileNames.push_back(ent->d_name);
-
-                // Add the name without extension
-                std::string name = ent->d_name;
-                item->names.push_back(name.substr(0, name.find_last_of(".")));
-
-                // Check if this is the current item
-                if (std::strcmp(ent->d_name, currentName) == 0) {
-                    item->selected = item->names.size() - 1;
-                }
             }
         }
     }
     else {
         DEBUG_FUNCTION_LINE("Cannot open amiibo folder");
+    }
+
+    // sort files alphabetically
+    std::sort(item->fileNames.begin(), item->fileNames.end(),
+        [](std::string &a, std::string &b) {
+            return strcasecmp(a.c_str(), b.c_str()) <= 0; 
+        }
+    );
+
+    for (std::string const& fileName : item->fileNames) {
+        // Add the name without extension
+        std::string name = fileName.substr(0, fileName.find_last_of("."));
+        item->names.push_back(name);
+
+        // Check if this is the current item
+        if (fileName.compare(currentName) == 0) {
+            item->selected = item->names.size() - 1;
+        }
     }
 
     if (configID) {
