@@ -172,6 +172,7 @@ void ClearApplicationArea(NTAGData* data)
 {
     GetRandom(&data->info.appId, sizeof(data->info.appId));
     GetRandom(&data->info.titleId, sizeof(data->info.titleId));
+    GetRandom(&data->appData.data, sizeof(data->appData.data));
     // clear the "has application area" bit
     data->info.flags_hi &= ~2;
 }
