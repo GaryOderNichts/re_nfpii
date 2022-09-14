@@ -12,7 +12,7 @@ The module completely replaces all exports of nn_nfp and adds additional exports
 The plugin handles the configurarion menu for the module and some additional things which can't be added to the module.
 
 ## Usage
-- Download the artifacts of latest nightly build from [here](https://github.com/GaryOderNichts/re_nfpii/actions) (Requires a GitHub account).
+- Download the [latest release](https://github.com/GaryOderNichts/re_nfpii/releases) or the artifacts of latest nightly build from [here](https://github.com/GaryOderNichts/re_nfpii/actions) (Requires a GitHub account).
 - Copy the contents of the downloaded *`.zip`* file to your target environment.
 - Copy your (encrypted!) amiibo dumps to `wiiu/re_nfpii`.
 - Open the plugin configuration menu with L + Down + SELECT.
