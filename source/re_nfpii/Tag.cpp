@@ -241,7 +241,7 @@ Result Tag::SetRegisterInfo(RegisterInfoSet const& info)
     }
 
     ntagData.info.zero = 0;
-    SetCountryRegion(&ntagData.info.countryCode);
+    ReadCountryRegion(&ntagData.info.countryCode);
     memcpy(&ntagData.info.mii, &info.mii, sizeof(info.mii));
     UpdateMii(&ntagData.info.mii);
     memcpy(ntagData.info.name, info.amiibo_name, sizeof(ntagData.info.name));

@@ -20,7 +20,7 @@ void ReadAdminInfo(AdminInfo* info, const NTAGData* data);
 void ClearApplicationArea(NTAGData* data);
 void ClearRegisterInfo(NTAGData* data);
 
-Result SetCountryRegion(uint8_t* outCountryCode);
+Result ReadCountryRegion(uint8_t* outCountryCode);
 uint16_t OSTimeToAmiiboTime(OSTime time);
 void ConvertAmiiboDate(Date* date, uint16_t time);
 bool CheckAmiiboMagic(NTAGData* data);

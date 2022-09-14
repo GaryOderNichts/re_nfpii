@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <coreinit/time.h>
+#include <coreinit/userconfig.h>
 
 namespace re::nfpii {
 
@@ -188,10 +189,43 @@ void ClearRegisterInfo(NTAGData* data)
     data->info.flags_hi &= ~1;
 }
 
-Result SetCountryRegion(uint8_t* outCountryCode)
+static bool ReadSysConfig(const char* name, UCDataType type, uint32_t size, void* data)
 {
-    // TODO
-    *outCountryCode = 0xff;
+    UCHandle handle = UCOpen();
+    if (handle < 0) {
+        return false;
+    }
+
+    UCSysConfig config;
+    strncpy(config.name, name, sizeof(config.name));
+    config.access = 0x777;
+    config.error = 0;
+    config.dataType = type;
+    config.dataSize = size;
+    config.data = data;
+    UCError error = UCReadSysConfig(handle, 1, &config);
+    if (error == UC_ERROR_OK) {
+        UCClose(handle);
+        return true;
+    }
+
+    UCClose(handle);
+    return false;
+}
+
+Result ReadCountryRegion(uint8_t* outCountryCode)
+{
+    uint32_t cntry_reg;
+    if (!ReadSysConfig("cafe.cntry_reg", UC_DATATYPE_UNSIGNED_INT, sizeof(cntry_reg), &cntry_reg)) {
+        *outCountryCode = 0xff;
+        return RESULT(0xa1b3e880);
+    }
+
+    if (cntry_reg > 0xff) {
+        cntry_reg = 0xff;
+    }
+
+    *outCountryCode = (uint8_t) cntry_reg;
     return NFP_SUCCESS;
 }
 
