@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <nfc.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +33,7 @@ void NfpiiSetTagEmulationPath(const char* path);
 
 const char* NfpiiGetTagEmulationPath(void);
 
-bool NfpiiNotifyNFCGetTagInfo(void);
+NFCError NfpiiQueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg);
 
 #ifdef __cplusplus
 }

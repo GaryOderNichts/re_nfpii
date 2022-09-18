@@ -5,8 +5,10 @@
 #include <string>
 #include <coreinit/mutex.h>
 #include <coreinit/event.h>
+#include <coreinit/alarm.h>
 
 #include <nfpii.h>
+#include <nfc.h>
 
 namespace re::nfpii {
 using nn::Result;
@@ -78,6 +80,8 @@ private:
 
     bool CheckRegisterInfo();
 
+    static void NfcProcCallback(OSAlarm* alarm, OSContext* context);
+
 public: // custom
     void SetEmulationState(NfpiiEmulationState state)
     {
@@ -123,11 +127,15 @@ public: // custom
     Result LoadTag();
     void HandleTagUpdates();
 
-    void NotifyNFCGetTagInfo();
+    NFCError QueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg);
+    void HandleNFCGetTagInfo();
 
 private:
     // +0x0
     OSMutex mutex;
+
+    // +0xe0
+    OSAlarm nfcProcAlarm;
 
     // +0x15c
     OSEvent* activateEvent;
@@ -157,6 +165,10 @@ private: // custom
     float removeAfterSeconds;
     bool pendingRemove;
     OSTime pendingTagRemoveTime;
+
+    bool pendingTagInfo;
+    NFCTagInfoCallback nfcTagInfoCallback;
+    void* nfcTagInfoArg;
 
     bool inAmiiboSettings;
     OSTime amiiboSettingsReattachTimeout;

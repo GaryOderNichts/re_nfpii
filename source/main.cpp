@@ -77,14 +77,9 @@ const char* NfpiiGetTagEmulationPath(void)
     return re::nfpii::tagManager.GetTagEmulationPath().c_str();
 }
 
-bool NfpiiNotifyNFCGetTagInfo(void)
+NFCError NfpiiQueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg)
 {
-    if (re::nfpii::tagManager.GetEmulationState() == EMULATION_OFF) {
-        return false;
-    }
-
-    re::nfpii::tagManager.NotifyNFCGetTagInfo();
-    return true;
+    return re::nfpii::tagManager.QueueNFCGetTagInfo(callback, arg);
 }
 
 WUMS_EXPORT_FUNCTION(NfpiiIsInitialized);
@@ -95,4 +90,4 @@ WUMS_EXPORT_FUNCTION(NfpiiGetUUIDRandomizationState);
 WUMS_EXPORT_FUNCTION(NfpiiSetRemoveAfterSeconds);
 WUMS_EXPORT_FUNCTION(NfpiiSetTagEmulationPath);
 WUMS_EXPORT_FUNCTION(NfpiiGetTagEmulationPath);
-WUMS_EXPORT_FUNCTION(NfpiiNotifyNFCGetTagInfo);
+WUMS_EXPORT_FUNCTION(NfpiiQueueNFCGetTagInfo);

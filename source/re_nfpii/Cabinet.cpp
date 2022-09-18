@@ -77,8 +77,6 @@ static void AmiiboSettingsDeserializationCallback(SYSDeserializeArg* arg, void* 
 
 Result GetArgs(AmiiboSettingsArgs* args)
 {
-    DEBUG_FUNCTION_LINE("nn::nfp::GetAmiiboSettingsArgs");
-
     OnCabinetEnter();
 
     if (!args) {
@@ -117,8 +115,6 @@ static bool VerifyResultValueBlock(SYSArgDataBlock const& block)
 
 Result GetResult(AmiiboSettingsResult* result, SYSArgDataBlock const& block)
 {
-    DEBUG_FUNCTION_LINE("nn::nfp::GetAmiiboSettingsResult");
-
     if (!result) {
         return NFP_INVALID_PARAM;
     }
@@ -137,8 +133,6 @@ Result GetResult(AmiiboSettingsResult* result, SYSArgDataBlock const& block)
 
 Result InitializeArgsIn(AmiiboSettingsArgsIn* args)
 {
-    DEBUG_FUNCTION_LINE("nn::nfp::InitializeAmiiboSettingsArgsIn");
-
     if (!args) {
         return NFP_INVALID_PARAM;
     }
@@ -156,8 +150,6 @@ Result InitializeArgsIn(AmiiboSettingsArgsIn* args)
 
 Result ReturnToCallerWithResult(AmiiboSettingsResult const& result)
 {
-    DEBUG_FUNCTION_LINE("nn::nfp::ReturnToCallerWithAmiiboSettingsResult");
-
     AmiiboSettingsReturnArg returnArg;
     OSBlockMove(returnArg.argName, "ambResultValue:", sizeof("ambResultValue:"), TRUE);
     OSBlockMove(&returnArg.result, &result, sizeof(result), TRUE);
@@ -205,8 +197,6 @@ static bool VerifyAmiiboSettingsArgs(AmiiboSettingsArgsIn const& args)
 
 Result SwitchToCabinet(AmiiboSettingsArgsIn const& args, const char* standardArg, uint32_t standardArgSize)
 {
-    DEBUG_FUNCTION_LINE("nn::nfp::SwitchToAmiiboSettings");
-
     if (!VerifyAmiiboSettingsArgs(args)) {
         return NFP_INVALID_PARAM;
     }

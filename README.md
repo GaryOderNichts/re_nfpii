@@ -5,7 +5,7 @@ A more or less accurate reimplementation of the Wii U's nn_nfp.rpl library, with
 Requires the [Aroma](https://github.com/wiiu-env/Aroma) environment.  
 
 > :warning: This is still really experimental and work-in-progress!  
-Check the [compatibility list](https://github.com/GaryOderNichts/re_nfpii/wiki/Compatibility-List) for working games. Expect potential data loss of amiibo data.
+Check the [compatibility list](https://github.com/GaryOderNichts/re_nfpii/wiki/Compatibility-List) for confirmed working games.
 
 re_nfpii is split into a module and a plugin.  
 The module completely replaces all exports of nn_nfp and adds additional exports for configuration. A majority of the code tries to be accurate to what nn_nfp is doing, so don't question some of the design choices.  

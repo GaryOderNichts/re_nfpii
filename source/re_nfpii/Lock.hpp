@@ -6,10 +6,13 @@
 // The compiler inlines most of this so it's hard to tell how this looks exactly
 class Lock {
 public:
-    Lock(OSMutex* mutex) : mutex(mutex)
+    Lock(OSMutex* mutex, bool locked = false) 
+     : mutex(mutex), isLocked(locked)
     {
-        OSLockMutex(mutex);
-        isLocked = true;
+        if (!isLocked) {
+            OSLockMutex(mutex);
+            isLocked = true;
+        }
     }
 
     ~Lock()

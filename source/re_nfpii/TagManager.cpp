@@ -19,6 +19,7 @@ TagManager::TagManager()
     readOnly = false;
 
     OSInitMutex(&mutex);
+    OSCreateAlarmEx(&nfcProcAlarm, "NfcProcAlarm");
 
     emulationState = EMULATION_OFF;
     uuidRandomizationState = RANDOMIZATION_OFF;
@@ -26,6 +27,10 @@ TagManager::TagManager()
     removeAfterSeconds = 0.0f;
     pendingRemove = false;
     pendingTagRemoveTime = 0;
+
+    pendingTagInfo = false;
+    nfcTagInfoCallback = nullptr;
+    nfcTagInfoArg = nullptr;
 
     inAmiiboSettings = false;
     amiiboSettingsReattachTimeout = 0;
@@ -56,6 +61,10 @@ Result TagManager::Initialize()
 
     // TODO ACPInitialize
 
+    // Setup the proc alarm
+    OSSetAlarmUserData(&nfcProcAlarm, this);
+    OSSetPeriodicAlarm(&nfcProcAlarm, OSGetTime(), OSMillisecondsToTicks(15), NfcProcCallback);
+
     // Initialize our custom FS utils here, since every game will have
     // to call this, even after returning from amiibo settings
     FSUtils::Initialize();
@@ -74,6 +83,7 @@ Result TagManager::Finalize()
     }
 
     StopDetection();
+    OSCancelAlarm(&nfcProcAlarm);
 
     FSUtils::Finalize();
 
@@ -85,10 +95,6 @@ Result TagManager::Finalize()
 Result TagManager::GetNfpState(NfpState& state)
 {
     if (UpdateInternal()) {
-        // Handle custom tag updates here
-        // TODO what if an application doesn't call GetNfpState periodically?
-        HandleTagUpdates();
-
         state = nfpState;
     } else {
         state = NfpState::Uninitialized;
@@ -997,6 +1003,24 @@ bool TagManager::CheckRegisterInfo()
     return false;
 }
 
+void TagManager::NfcProcCallback(OSAlarm* alarm, OSContext* context)
+{
+    TagManager* mgr = static_cast<TagManager*>(OSGetAlarmUserData(alarm));
+    if (!OSTryLockMutex(&mgr->mutex)) {
+        return;
+    }
+
+    Lock lock(&mgr->mutex, true);
+
+    // Handle custom tag updates here
+    mgr->HandleTagUpdates();
+
+    // Handle nfc tag info callbacks
+    // The callbacks would usually be called from NFCProc which gets called by NTAGProc,
+    // which would be called here, so handling this here is the "most accurate"
+    mgr->HandleNFCGetTagInfo();
+}
+
 Result TagManager::LoadTag()
 {    
     // Only allow loading tags when we're searching for one for now
@@ -1095,12 +1119,48 @@ void TagManager::HandleTagUpdates()
     }
 }
 
-void TagManager::NotifyNFCGetTagInfo()
+NFCError TagManager::QueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg)
 {
-    // Set time once the tag should be removed, so it works properly in amiibo festival
-    if (pendingTagRemoveTime == 0 && removeAfterSeconds != 0.0f) {
-        pendingTagRemoveTime = OSGetTime() + OSNanosecondsToTicks(removeAfterSeconds * 1e9);
+    Lock lock(&mutex);
+
+    pendingTagInfo = true;
+    nfcTagInfoCallback = callback;
+    nfcTagInfoArg = arg;
+
+    return NFC_ERR_OK;
+}
+
+void TagManager::HandleNFCGetTagInfo()
+{
+    if (!pendingTagInfo) {
+        return;
     }
+
+    NFCError err = NFC_ERR_OK;
+    NFCTagInfo nfcTagInfo{};
+    if (emulationState != EMULATION_OFF) {
+        // Set time once the tag should be removed, so it works properly in amiibo festival
+        if (pendingTagRemoveTime == 0 && removeAfterSeconds != 0.0f) {
+            pendingTagRemoveTime = OSGetTime() + OSNanosecondsToTicks(removeAfterSeconds * 1e9);
+        }
+
+        // Read UID from file
+        // TODO: amiibo festival calls this several times, should probably cache the current tag data
+        nfcTagInfo.uidSize = 7;
+        if (FSUtils::ReadFromFile(tagEmulationPath.c_str(), nfcTagInfo.uid, nfcTagInfo.uidSize) != nfcTagInfo.uidSize) {
+            err = NFC_ERR_GET_TAG_INFO;
+        }
+
+        nfcTagInfo.protocol = 0;
+        nfcTagInfo.tag_type = 2;
+    } else {
+        err = NFC_ERR_GET_TAG_INFO;
+    }
+
+    // Clear this before calling the callback, so one can requeue a taginfo request in the callback
+    pendingTagInfo = false;
+
+    nfcTagInfoCallback(0, err, &nfcTagInfo, nfcTagInfoArg);
 }
 
 } // namespace re::nfpii
