@@ -150,7 +150,7 @@ void ReadAdminInfo(AdminInfo* info, const NTAGData* data)
 {
     assert(info);
 
-    if (data->info.flags_hi & 2) {
+    if (!(data->info.flags_hi & 2)) {
         info->flags = data->info.flags_hi;
         info->titleId = 0;
         info->platform = 0xff;
