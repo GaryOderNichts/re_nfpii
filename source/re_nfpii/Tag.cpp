@@ -216,7 +216,7 @@ Result Tag::CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo cons
     WriteDataBuffer(applicationData, 0x130, ntagData.appData.size);
 
     // Set the "has application area" flag
-    ntagData.info.flags_hi |= 2;
+    ntagData.info.flags_hi |= TAG_HAS_APPLICATION_DATA;
 
     // Write the data to the tag
     Result res = Write(&tagInfo, true);
@@ -254,7 +254,7 @@ Result Tag::SetRegisterInfo(RegisterInfoSet const& info)
     }
 
     // Set "has register info" bit
-    ntagData.info.flags_hi |= 1;
+    ntagData.info.flags_hi |= TAG_HAS_REGISTER_INFO;
 
     return NFP_SUCCESS;
 }
@@ -364,12 +364,12 @@ Result Tag::Format(NTAGData* data, const void* appData, int32_t appDataSize)
 
 bool Tag::HasRegisterInfo()
 {
-    return ntagData.info.flags_hi & 1;
+    return ntagData.info.flags_hi & TAG_HAS_REGISTER_INFO;
 }
 
 bool Tag::IsExistApplicationArea()
 {
-    return ntagData.info.flags_hi & 2;
+    return ntagData.info.flags_hi & TAG_HAS_APPLICATION_DATA;
 }
 
 Result Tag::UpdateAppAreaInfo(bool unk)

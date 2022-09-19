@@ -33,4 +33,9 @@ extern TagManager tagManager;
 #define NFP_INVALID_ALIGNMENT           NFP_USAGE_RESULT(INVALID_ALIGNMENT) // 0xc1b03800
 #define NFP_OUT_OF_RANGE                NFP_USAGE_RESULT(0x03700) // 0xc1b03700
 
+enum {
+    TAG_HAS_REGISTER_INFO      = 1 << 0,
+    TAG_HAS_APPLICATION_DATA   = 1 << 1,
+};
+
 } // namespace re::nfpii

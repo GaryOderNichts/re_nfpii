@@ -86,7 +86,7 @@ void ReadCommonInfo(CommonInfo* info, const NTAGData* data)
 {
     assert(info);
 
-    if (!(data->info.flags_hi & 1) && !(data->info.flags_hi & 2)) {
+    if (!(data->info.flags_hi & TAG_HAS_REGISTER_INFO) && !(data->info.flags_hi & TAG_HAS_APPLICATION_DATA)) {
         ConvertAmiiboDate(&info->last_write_date, 0);
         info->write_counter = data->info.writeCount;
         memcpy(&info->game_character_id, data->info.characterInfo, 3);
@@ -150,7 +150,7 @@ void ReadAdminInfo(AdminInfo* info, const NTAGData* data)
 {
     assert(info);
 
-    if (!(data->info.flags_hi & 2)) {
+    if (!(data->info.flags_hi & TAG_HAS_APPLICATION_DATA)) {
         info->flags = data->info.flags_hi;
         info->titleId = 0;
         info->platform = 0xff;
@@ -175,7 +175,7 @@ void ClearApplicationArea(NTAGData* data)
     GetRandom(&data->info.titleId, sizeof(data->info.titleId));
     GetRandom(&data->appData.data, sizeof(data->appData.data));
     // clear the "has application area" bit
-    data->info.flags_hi &= ~2;
+    data->info.flags_hi &= ~TAG_HAS_APPLICATION_DATA;
 }
 
 void ClearRegisterInfo(NTAGData* data)
@@ -186,7 +186,7 @@ void ClearRegisterInfo(NTAGData* data)
     GetRandom(data->info.name, sizeof(data->info.name));
     GetRandom(&data->info.mii, sizeof(data->info.mii));
     // clear the "has register info" bit
-    data->info.flags_hi &= ~1;
+    data->info.flags_hi &= ~TAG_HAS_REGISTER_INFO;
 }
 
 static bool ReadSysConfig(const char* name, UCDataType type, uint32_t size, void* data)
