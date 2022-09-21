@@ -103,7 +103,7 @@ Result Flush()
     return tagManager.Flush();
 }
 
-Result Format(const void* data, int32_t size)
+Result Format(const uint8_t* data, int32_t size)
 {
     DEBUG_FUNCTION_LINE("nn::nfp::Format: %p %u", data, size);
 
@@ -228,7 +228,7 @@ Result InitializeCreateInfo(ApplicationAreaCreateInfo* createInfo)
     }
 
     createInfo->data = nullptr;
-    createInfo->id = 0;
+    createInfo->accessID = 0;
     createInfo->size = 0;
     memset(createInfo->reserved, 0, sizeof(createInfo->reserved));
 

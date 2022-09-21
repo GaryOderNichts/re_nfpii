@@ -177,7 +177,7 @@ Result Tag::CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo cons
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, data);
     if (tagInfo.tag_type != 2) {
-        return RESULT(0xa1b0c800);
+        return NFP_INVALID_TAG;
     }
 
     if (!createInfo.data) {
@@ -200,7 +200,7 @@ Result Tag::CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo cons
     memmove(&ntagData, data, sizeof(NTAGData));
 
     updateTitleId = true;
-    ntagData.info.appId = createInfo.id;
+    ntagData.info.appId = createInfo.accessID;
 
     memset(tagInfo.reserved1, 0, sizeof(tagInfo.reserved1));
 
@@ -216,7 +216,7 @@ Result Tag::CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo cons
     WriteDataBuffer(applicationData, 0x130, ntagData.appData.size);
 
     // Set the "has application area" flag
-    ntagData.info.flags_hi |= TAG_HAS_APPLICATION_DATA;
+    ntagData.info.flags_hi |= (uint8_t) AdminFlags::HasApplicationData;
 
     // Write the data to the tag
     Result res = Write(&tagInfo, true);
@@ -244,7 +244,7 @@ Result Tag::SetRegisterInfo(RegisterInfoSet const& info)
     ReadCountryRegion(&ntagData.info.countryCode);
     memcpy(&ntagData.info.mii, &info.mii, sizeof(info.mii));
     UpdateMii(&ntagData.info.mii);
-    memcpy(ntagData.info.name, info.amiibo_name, sizeof(ntagData.info.name));
+    memcpy(ntagData.info.name, info.name, sizeof(ntagData.info.name));
     ntagData.info.flags_lo = info.flags;
 
     // If we don't have any register info yet, write setup date
@@ -254,7 +254,7 @@ Result Tag::SetRegisterInfo(RegisterInfoSet const& info)
     }
 
     // Set "has register info" bit
-    ntagData.info.flags_hi |= TAG_HAS_REGISTER_INFO;
+    ntagData.info.flags_hi |= (uint8_t) AdminFlags::IsRegistered;
 
     return NFP_SUCCESS;
 }
@@ -264,7 +264,7 @@ Result Tag::DeleteApplicationArea()
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, &ntagData);
     if (tagInfo.tag_type != 2) {
-        return RESULT(0xa1b0c800);
+        return NFP_INVALID_TAG;
     }
 
     // Backup current working buffer in case anything fails, to not modify state
@@ -294,7 +294,7 @@ Result Tag::DeleteRegisterInfo()
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, &ntagData);
     if (tagInfo.tag_type != 2) {
-        return RESULT(0xa1b0c800);
+        return NFP_INVALID_TAG;
     }
 
     // Backup current working buffer in case anything fails, to not modify state
@@ -328,7 +328,7 @@ Result Tag::Format(NTAGData* data, const void* appData, int32_t appDataSize)
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, data);
     if (tagInfo.tag_type != 2) {
-        return RESULT(0xa1b0c800);
+        return NFP_INVALID_TAG;
     }
 
     // Move data into working buffer
@@ -364,12 +364,12 @@ Result Tag::Format(NTAGData* data, const void* appData, int32_t appDataSize)
 
 bool Tag::HasRegisterInfo()
 {
-    return ntagData.info.flags_hi & TAG_HAS_REGISTER_INFO;
+    return ntagData.info.flags_hi & (uint8_t) AdminFlags::IsRegistered;
 }
 
 bool Tag::IsExistApplicationArea()
 {
-    return ntagData.info.flags_hi & TAG_HAS_APPLICATION_DATA;
+    return ntagData.info.flags_hi & (uint8_t) AdminFlags::HasApplicationData;
 }
 
 Result Tag::UpdateAppAreaInfo(bool unk)

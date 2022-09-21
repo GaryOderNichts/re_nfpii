@@ -476,7 +476,7 @@ Result TagManager::WriteApplicationArea(const void* data, uint32_t size, const T
     }
 
     NTAGData* ntagData = tagStates[currentTagIndex].tag->GetData();
-    if (ntagData->uidSize != tagId->lenght || (memcmp(ntagData->uid, tagId->id, tagId->lenght) != 0)) {
+    if (ntagData->uidSize != tagId->size || (memcmp(ntagData->uid, tagId->uid, tagId->size) != 0)) {
         return NFP_APP_AREA_TAGID_MISMATCH;
     }
 
@@ -513,7 +513,7 @@ Result TagManager::OpenApplicationArea(uint32_t id)
     }
 
     if (appAreaInfo.id != id) {
-        return NFP_APP_AREA_ID_MISMATCH;
+        return NFP_APP_AREA_ACCESS_ID_MISMATCH;
     }
 
     return tagStream.Open(id);
@@ -898,7 +898,7 @@ Result TagManager::VerifyTagInfo()
     }
 
     if (info.protocol != 0 || info.tag_type != 2) {
-        return NFP_INVALID_TAG;
+        return NFP_INVALID_TAG_INFO;
     }
 
     return NFP_SUCCESS;
@@ -935,8 +935,8 @@ Result TagManager::GetTagInfo(TagInfo* outTagInfo, uint8_t index)
     NTAGData* data = tagStates[index].tag->GetData();
     ReadTagInfo(outTagInfo, data);
 
-    if (outTagInfo->id.lenght > 10) {
-        return NFP_INVALID_TAG;
+    if (outTagInfo->id.size > 10) {
+        return NFP_INVALID_TAG_INFO;
     }
 
     return NFP_SUCCESS;
@@ -958,7 +958,7 @@ Result TagManager::MountTag()
     tagStream.Close();
 
     if (currentTag != &tag) {
-        return RESULT(0xe1b5db00); // what?
+        return NFP_FATAL;
     }
 
     res = tag.Mount(!readOnly);

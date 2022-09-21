@@ -92,13 +92,13 @@ Result TagStream::TagStreamImpl::Open(uint32_t id)
     tag->GetAppAreaInfo(appInfo, &numAreas);
 
     if (numAreas < 1) {
-        return RESULT(0xa1b0c800);
+        return NFP_INVALID_TAG;
     }
 
     for (uint32_t i = 0; i < numAreas; i++) {
         if (appInfo[i].id == id) {
             if (appInfo[i].size != 0xd8) {
-                return RESULT(0xa1b0c800);
+                return NFP_INVALID_TAG;
             }
 
             memcpy(&info, &appInfo[i], sizeof(info));
@@ -108,7 +108,7 @@ Result TagStream::TagStreamImpl::Open(uint32_t id)
         }
     }
 
-    return RESULT(0xa1b0c800);
+    return NFP_INVALID_TAG;
 }
 
 Result TagStream::TagStreamImpl::Close()

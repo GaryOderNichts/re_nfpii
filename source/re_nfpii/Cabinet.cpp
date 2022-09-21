@@ -45,7 +45,7 @@ static void AmiiboSettingsDeserializationCallback(SYSDeserializeArg* arg, void* 
         return;
     }
 
-    if (dyn__SYSDeserializeStandardArg(arg, &amiiboArgs->standardArg)) {
+    if (dyn__SYSDeserializeStandardArg(arg, &amiiboArgs->standardArgs)) {
         return;
     }
 
@@ -85,7 +85,7 @@ Result GetArgs(AmiiboSettingsArgs* args)
 
     memset(args, 0, sizeof(*args));
     if (dyn_SYSDeserializeSysArgs(AmiiboSettingsDeserializationCallback, args) != 0) {
-        return RESULT(0xa1b3e880);
+        return NFP_SYSTEM_ERROR;
     }
 
     return NFP_SUCCESS;
@@ -137,7 +137,7 @@ Result InitializeArgsIn(AmiiboSettingsArgsIn* args)
         return NFP_INVALID_PARAM;
     }
 
-    args->mode = 0;
+    args->mode = AmiiboSettingsMode::Register;
     memset(&args->tag_info, 0, sizeof(args->tag_info));
     args->is_registered = false;
     memset(&args->padding, 0, sizeof(args->padding));
@@ -164,7 +164,7 @@ Result ReturnToCallerWithResult(AmiiboSettingsResult const& result)
     OnCabinetLeave();
 
     if (dyn__SYSDirectlyReturnToCaller(&args) != 0) {
-        return RESULT(0xa1b3e880);
+        return NFP_SYSTEM_ERROR;
     }
 
     return NFP_SUCCESS;
@@ -172,7 +172,10 @@ Result ReturnToCallerWithResult(AmiiboSettingsResult const& result)
 
 static bool VerifyAmiiboSettingsArgs(AmiiboSettingsArgsIn const& args)
 {
-    if (args.mode != 0x0 && args.mode != 0x1 && args.mode != 0x2 && args.mode != 0x64) {
+    if (args.mode != AmiiboSettingsMode::Register &&
+        args.mode != AmiiboSettingsMode::DeleteGameData &&
+        args.mode != AmiiboSettingsMode::Restore &&
+        args.mode != (AmiiboSettingsMode) 0x64) {
         return false;
     }
 
@@ -233,7 +236,7 @@ Result SwitchToCabinet(AmiiboSettingsArgsIn const& args, const char* standardArg
 
     // Switch to amiibo settings
     if (_SYSDirectlySwitchTo(SYSAPP_PFID_CABINETU) != 0) {
-        return RESULT(0xa1b3e880);
+        return NFP_SYSTEM_ERROR;
     }
 
     return NFP_SUCCESS;

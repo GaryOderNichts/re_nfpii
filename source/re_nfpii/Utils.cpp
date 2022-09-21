@@ -76,8 +76,8 @@ void ReadTagInfo(TagInfo* info, const NTAGData* data)
 {
     assert(info);
     
-    memcpy(info->id.id, data->uid, data->uidSize);
-    info->id.lenght = data->uidSize;
+    memcpy(info->id.uid, data->uid, data->uidSize);
+    info->id.size = data->uidSize;
     info->protocol = data->protocol;
     info->tag_type = FindTagType(data->protocol, data->tagType);   
 }
@@ -86,25 +86,25 @@ void ReadCommonInfo(CommonInfo* info, const NTAGData* data)
 {
     assert(info);
 
-    if (!(data->info.flags_hi & TAG_HAS_REGISTER_INFO) && !(data->info.flags_hi & TAG_HAS_APPLICATION_DATA)) {
-        ConvertAmiiboDate(&info->last_write_date, 0);
-        info->write_counter = data->info.writeCount;
-        memcpy(&info->game_character_id, data->info.characterInfo, 3);
-        info->model_number = data->info.modelNumber;
-        info->figure_type = data->info.figureType;
-        info->series = data->info.series;
-        info->application_area_size = data->appData.size;
-        info->unk = data->info.zero;
+    if (!(data->info.flags_hi & (uint8_t) AdminFlags::IsRegistered) && !(data->info.flags_hi & (uint8_t) AdminFlags::HasApplicationData)) {
+        ConvertAmiiboDate(&info->lastWriteDate, 0);
+        info->writes = data->info.writeCount;
+        memcpy(&info->characterID, data->info.characterInfo, 3);
+        info->numberingID = data->info.modelNumber;
+        info->figureType = data->info.figureType;
+        info->seriesID = data->info.series;
+        info->applicationAreaSize = data->appData.size;
+        info->figureVersion = data->info.zero;
         memset(info->reserved, 0, sizeof(info->reserved));
     } else {
-        ConvertAmiiboDate(&info->last_write_date, data->info.lastWriteDate);
-        info->write_counter = data->info.writeCount;
-        memcpy(&info->game_character_id, data->info.characterInfo, 3);
-        info->model_number = data->info.modelNumber;
-        info->figure_type = data->info.figureType;
-        info->series = data->info.series;
-        info->application_area_size = data->appData.size;
-        info->unk = data->info.zero;
+        ConvertAmiiboDate(&info->lastWriteDate, data->info.lastWriteDate);
+        info->writes = data->info.writeCount;
+        memcpy(&info->characterID, data->info.characterInfo, 3);
+        info->numberingID = data->info.modelNumber;
+        info->figureType = data->info.figureType;
+        info->seriesID = data->info.series;
+        info->applicationAreaSize = data->appData.size;
+        info->figureVersion = data->info.zero;
         memset(info->reserved, 0, sizeof(info->reserved));
     }
 }
@@ -114,12 +114,12 @@ void ReadRegisterInfo(RegisterInfo* info, const NTAGData* data)
     assert(info);
 
     memcpy(&info->mii, &data->info.mii, sizeof(info->mii));
-    memcpy(info->amiibo_name, data->info.name, sizeof(data->info.name));
+    memcpy(info->name, data->info.name, sizeof(data->info.name));
     // null-terminate name
-    info->amiibo_name[10] = 0;
-    ConvertAmiiboDate(&info->first_write_date, data->info.setupDate);
+    info->name[10] = 0;
+    ConvertAmiiboDate(&info->registerDate, data->info.setupDate);
     info->flags = data->info.flags_lo;
-    info->country_code = data->info.countryCode;
+    info->country = data->info.countryCode;
     memset(info->reserved, 0, sizeof(info->reserved));
 }
 
@@ -127,10 +127,10 @@ void ReadReadOnlyInfo(ReadOnlyInfo* info, const NTAGData* data)
 {
     assert(info);
 
-    memcpy(&info->game_character_id, data->info.characterInfo, 3);
-    info->model_number = data->info.modelNumber;
-    info->figure_type = data->info.figureType;
-    info->series = data->info.series;
+    memcpy(&info->characterID, data->info.characterInfo, 3);
+    info->numberingID = data->info.modelNumber;
+    info->figureType = data->info.figureType;
+    info->seriesID = data->info.series;
     memset(info->reserved, 0, sizeof(info->reserved));
 }
 
@@ -150,21 +150,21 @@ void ReadAdminInfo(AdminInfo* info, const NTAGData* data)
 {
     assert(info);
 
-    if (!(data->info.flags_hi & TAG_HAS_APPLICATION_DATA)) {
-        info->flags = data->info.flags_hi;
-        info->titleId = 0;
+    if (!(data->info.flags_hi & (uint8_t) AdminFlags::HasApplicationData)) {
+        info->flags = (AdminFlags) data->info.flags_hi;
+        info->titleID = 0;
         info->platform = 0xff;
-        info->appAreaId = 0;
-        info->updateCount = data->info.appDataUpdateCount;
-        info->version = data->formatVersion;
+        info->accessID = 0;
+        info->applicationAreaWrites = data->info.appDataUpdateCount;
+        info->formatVersion = data->formatVersion;
         memset(info->reserved, 0, sizeof(info->reserved));
     } else {
-        info->titleId = data->info.titleId;
-        info->appAreaId = data->info.appId;
+        info->titleID = data->info.titleId;
+        info->accessID = data->info.appId;
         info->platform = GetPlatform(data->info.titleId);
-        info->flags = data->info.flags_hi;
-        info->updateCount = data->info.appDataUpdateCount;
-        info->version = data->formatVersion;
+        info->flags = (AdminFlags) data->info.flags_hi;
+        info->applicationAreaWrites = data->info.appDataUpdateCount;
+        info->formatVersion = data->formatVersion;
         memset(info->reserved, 0, sizeof(info->reserved));
     }
 }
@@ -175,7 +175,7 @@ void ClearApplicationArea(NTAGData* data)
     GetRandom(&data->info.titleId, sizeof(data->info.titleId));
     GetRandom(&data->appData.data, sizeof(data->appData.data));
     // clear the "has application area" bit
-    data->info.flags_hi &= ~TAG_HAS_APPLICATION_DATA;
+    data->info.flags_hi &= ~(uint8_t) AdminFlags::HasApplicationData;
 }
 
 void ClearRegisterInfo(NTAGData* data)
@@ -186,7 +186,7 @@ void ClearRegisterInfo(NTAGData* data)
     GetRandom(data->info.name, sizeof(data->info.name));
     GetRandom(&data->info.mii, sizeof(data->info.mii));
     // clear the "has register info" bit
-    data->info.flags_hi &= ~TAG_HAS_REGISTER_INFO;
+    data->info.flags_hi &= ~(uint8_t) AdminFlags::IsRegistered;
 }
 
 static bool ReadSysConfig(const char* name, UCDataType type, uint32_t size, void* data)
@@ -218,7 +218,7 @@ Result ReadCountryRegion(uint8_t* outCountryCode)
     uint32_t cntry_reg;
     if (!ReadSysConfig("cafe.cntry_reg", UC_DATATYPE_UNSIGNED_INT, sizeof(cntry_reg), &cntry_reg)) {
         *outCountryCode = 0xff;
-        return RESULT(0xa1b3e880);
+        return NFP_SYSTEM_ERROR;
     }
 
     if (cntry_reg > 0xff) {
@@ -284,14 +284,14 @@ void SetUuidCRC(uint32_t* crc)
 static uint16_t crc16(uint16_t poly, const void* data, uint32_t size)
 {
     uint16_t crc = 0;
-    for (uint32_t byteIndex = 0; byteIndex < size; byteIndex++)  {
+    for (uint32_t byteIndex = 0; byteIndex < size; byteIndex++) {
         for (int bitIndex = 7; bitIndex >= 0; bitIndex--) {
             crc = (((crc << 1) | ((((const uint8_t*) data)[byteIndex] >> bitIndex) & 0x1)) 
                 ^ (((crc & 0x8000) != 0) ? poly : 0)); 
         }
     }
 
-    for (int counter = 16; counter > 0; counter--)  {
+    for (int counter = 16; counter > 0; counter--) {
         crc = ((crc << 1) ^ (((crc & 0x8000) != 0) ? poly : 0));
     }
 
