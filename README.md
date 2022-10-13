@@ -18,6 +18,9 @@ The plugin handles the configurarion menu for the module and some additional thi
 - Open the plugin configuration menu with L + Down + SELECT.
 - Select one of your amiibo and enable emulation.
 
+> :information_source: Official Amiibo figures can currently not be used while the module is loaded.  
+> To use the figures again delete the `re_nfpii.wms` file from your `modules` folder.  
+
 ### Remove after
 - The remove after feature "removes" the virtual tag from the reader after the specified amount of time.
 
