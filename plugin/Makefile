@@ -22,7 +22,8 @@ TARGET		:=	re_nfpii
 BUILD		:=	build
 SOURCES		:=	source \
 			source/config \
-			source/debug
+			source/debug \
+			source/utils
 DATA		:=	data
 INCLUDES	:=	include \
 			../include \

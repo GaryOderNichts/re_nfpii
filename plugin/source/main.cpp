@@ -61,9 +61,9 @@ static void uuidRandomizationChangedCallback(ConfigItemMultipleValues* values, u
     NfpiiSetUUIDRandomizationState((NfpiiUUIDRandomizationState) index);
 }
 
-static void amiiboSelectedCallback(ConfigItemSelectAmiibo* amiibos, const char* fileName)
+static void amiiboSelectedCallback(ConfigItemSelectAmiibo* amiibos, const char* filePath)
 {
-    NfpiiSetTagEmulationPath((TAG_EMULATION_PATH + fileName).c_str());
+    NfpiiSetTagEmulationPath(filePath);
 }
 
 WUPS_GET_CONFIG()
@@ -109,12 +109,8 @@ WUPS_GET_CONFIG()
     WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "random_uuid", "Randomize UUID", NfpiiGetUUIDRandomizationState(), values, 3, uuidRandomizationChangedCallback);
 #endif
 
-    std::string currentPath = NfpiiGetTagEmulationPath();
-    if (currentPath.starts_with(TAG_EMULATION_PATH)) {
-        currentPath.erase(0, TAG_EMULATION_PATH.length());
-    }
-
-    ConfigItemSelectAmiibo_AddToCategoryHandled(config, cat, "select_amiibo", "Select Amiibo", TAG_EMULATION_PATH.c_str(), currentPath.c_str(), amiiboSelectedCallback);
+    std::string currentAmiiboPath = NfpiiGetTagEmulationPath();
+    ConfigItemSelectAmiibo_AddToCategoryHandled(config, cat, "select_amiibo", "Select Amiibo", TAG_EMULATION_PATH.c_str(), currentAmiiboPath.c_str(), amiiboSelectedCallback);
 
     return config;
 }
