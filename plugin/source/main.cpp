@@ -22,6 +22,9 @@ WUPS_PLUGIN_LICENSE("GPLv2");
 //WUPS_USE_STORAGE("re_nfpii");
 WUPS_USE_WUT_DEVOPTAB();
 
+// This is in .5 steps, i.e. 9 would be 4.5s
+#define MAX_REMOVE_AFTER_SECONDS 20
+
 #define TAG_EMULATION_PATH std::string("/vol/external01/wiiu/re_nfpii/")
 
 uint32_t currentRemoveAfterOption = 0;
@@ -89,24 +92,25 @@ WUPS_GET_CONFIG()
     WUPSConfigCategoryHandle cat;
     WUPSConfig_AddCategoryByNameHandled(config, "Settings", &cat);
 
-    ConfigItemMultipleValuesPair values[10];
-    values[0].value = EMULATION_OFF;
-    values[0].valueName = (char*) "Emulation Disabled";
-    values[1].value = EMULATION_ON;
-    values[1].valueName = (char*) "Emulation Enabled";
-    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "state", "Set State", NfpiiGetEmulationState(), values, 2, stateChangedCallback);
+    ConfigItemMultipleValuesPair emulationStateValues[2];
+    emulationStateValues[0].value = EMULATION_OFF;
+    emulationStateValues[0].valueName = (char*) "Emulation Disabled";
+    emulationStateValues[1].value = EMULATION_ON;
+    emulationStateValues[1].valueName = (char*) "Emulation Enabled";
+    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "state", "Set State", NfpiiGetEmulationState(), emulationStateValues, 2, stateChangedCallback);
 
-    values[0].value = 0;
-    values[0].valueName = (char*) "Never";
-    for (int i = 1; i < 10; i++) {
-        values[i].value = i;
+    ConfigItemMultipleValuesPair removeAfterValues[MAX_REMOVE_AFTER_SECONDS + 1];
+    removeAfterValues[0].value = 0;
+    removeAfterValues[0].valueName = (char*) "Never";
+    for (int i = 1; i < MAX_REMOVE_AFTER_SECONDS + 1; i++) {
+        removeAfterValues[i].value = i;
         char* fmt = (char*) malloc(32);
         snprintf(fmt, 32, "%.1fs", i / 2.0f);
-        values[i].valueName = fmt;
+        removeAfterValues[i].valueName = fmt;
     }
-    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "remove_after", "Remove after", currentRemoveAfterOption, values, 10, removeAfterChangedCallback);
+    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "remove_after", "Remove after", currentRemoveAfterOption, removeAfterValues, MAX_REMOVE_AFTER_SECONDS + 1, removeAfterChangedCallback);
     for (int i = 1; i < 10; i++) {
-        free(values[i].valueName);
+        free(removeAfterValues[i].valueName);
     }
 
 #if 0 //TODO
