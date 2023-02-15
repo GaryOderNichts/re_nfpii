@@ -17,6 +17,14 @@ typedef enum NfpiiUUIDRandomizationState {
     RANDOMIZATION_EVERY_READ
 } UUIDRandomizationState;
 
+typedef enum NfpiiLogVerbosity {
+    LOG_VERBOSITY_INFO,
+    LOG_VERBOSITY_WARN,
+    LOG_VERBOSITY_ERROR,
+} NfpiiLogVerbosity;
+
+typedef void (*NfpiiLogHandler)(NfpiiLogVerbosity verb, const char* message);
+
 bool NfpiiIsInitialized(void);
 
 void NfpiiSetEmulationState(NfpiiEmulationState state);
@@ -34,6 +42,8 @@ void NfpiiSetTagEmulationPath(const char* path);
 const char* NfpiiGetTagEmulationPath(void);
 
 NFCError NfpiiQueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg);
+
+void NfpiiSetLogHandler(NfpiiLogHandler handler);
 
 #ifdef __cplusplus
 }

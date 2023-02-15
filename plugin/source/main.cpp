@@ -11,6 +11,7 @@
 #include <nfpii.h>
 #include "debug/logger.h"
 #include "config/ConfigItemSelectAmiibo.hpp"
+#include "config/ConfigItemLog.hpp"
 
 WUPS_PLUGIN_NAME("re_nfpii");
 WUPS_PLUGIN_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
@@ -25,16 +26,25 @@ WUPS_USE_WUT_DEVOPTAB();
 
 uint32_t currentRemoveAfterOption = 0;
 
+static void nfpiiLogHandler(NfpiiLogVerbosity verb, const char* message)
+{
+    ConfigItemLog_PrintType((LogType) verb, message);
+}
+
 INITIALIZE_PLUGIN()
 {
     if (!WHBLogModuleInit()) {
         WHBLogCafeInit();
         WHBLogUdpInit();
     }
+
+    ConfigItemLog_Init();
+    NfpiiSetLogHandler(nfpiiLogHandler);
 }
 
 DEINITIALIZE_PLUGIN()
 {
+    NfpiiSetLogHandler(nullptr);
 }
 
 ON_APPLICATION_START()
@@ -111,6 +121,8 @@ WUPS_GET_CONFIG()
 
     std::string currentAmiiboPath = NfpiiGetTagEmulationPath();
     ConfigItemSelectAmiibo_AddToCategoryHandled(config, cat, "select_amiibo", "Select Amiibo", TAG_EMULATION_PATH.c_str(), currentAmiiboPath.c_str(), amiiboSelectedCallback);
+
+    ConfigItemLog_AddToCategoryHandled(config, cat, "log", "Logs");
 
     return config;
 }

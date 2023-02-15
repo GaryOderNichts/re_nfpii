@@ -4,6 +4,7 @@
 #include "ntag_crypt.h"
 #include "debug/logger.h"
 #include "utils/FSUtils.hpp"
+#include "utils/LogHandler.hpp"
 
 #include <cstring>
 #include <coreinit/title.h>
@@ -398,6 +399,8 @@ Result Tag::WriteTag(bool backup)
     int res = FSUtils::WriteToFile(path.c_str(), &raw, sizeof(raw));
     if (res != sizeof(raw)) {
         DEBUG_FUNCTION_LINE("Failed to write tag data to %s: %x", path.c_str(), res);
+        LogHandler::Error("Failed to write tag data to %s: %x", path.c_str(), res);
+
         return NFP_STATUS_RESULT(0x12345);
     }
 

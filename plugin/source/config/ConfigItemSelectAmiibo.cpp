@@ -1,6 +1,7 @@
 #include "ConfigItemSelectAmiibo.hpp"
 #include "utils/DrawUtils.hpp"
 #include "debug/logger.h"
+#include "config/ConfigItemLog.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -8,7 +9,6 @@
 #include <cstdarg>
 #include <algorithm>
 
-#include <coreinit/screen.h>
 #include <vpad/input.h>
 #include <padscore/kpad.h>
 
@@ -92,6 +92,7 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
         }
         else {
             DEBUG_FUNCTION_LINE("Cannot open '%s'", item->currentPath.c_str());
+            ConfigItemLog_PrintType(LOG_TYPE_ERROR, "Failed to open amiibo folder, make sure it exists!");
             return;
         }
 

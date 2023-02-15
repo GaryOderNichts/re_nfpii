@@ -8,6 +8,8 @@
 #include <nfpii.h>
 #include <re_nfpii/re_nfpii.hpp>
 
+#include "utils/LogHandler.hpp"
+
 WUMS_MODULE_EXPORT_NAME("nn_nfp");
 WUMS_MODULE_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
 WUMS_MODULE_AUTHOR("GaryOderNichts");
@@ -20,6 +22,8 @@ WUMS_INITIALIZE(myargs)
         WHBLogCafeInit();
         WHBLogUdpInit();
     }
+
+    LogHandler::Init();
 }
 
 WUMS_APPLICATION_STARTS()
@@ -44,6 +48,8 @@ bool NfpiiIsInitialized(void)
 
 void NfpiiSetEmulationState(NfpiiEmulationState state)
 {
+    LogHandler::Info("Module: Updated emulation state to: %d", state);
+
     re::nfpii::tagManager.SetEmulationState(state);
 }
 
@@ -54,6 +60,8 @@ NfpiiEmulationState NfpiiGetEmulationState(void)
 
 void NfpiiSetUUIDRandomizationState(NfpiiUUIDRandomizationState state)
 {
+    LogHandler::Info("Module: Updated uuid random state to: %d", state);
+
     re::nfpii::tagManager.SetUUIDRandomizationState(state);
 }
 
@@ -64,11 +72,15 @@ NfpiiUUIDRandomizationState NfpiiGetUUIDRandomizationState(void)
 
 void NfpiiSetRemoveAfterSeconds(float seconds)
 {
+    LogHandler::Info("Module: Updated remote after seconds to: %.1fs", seconds);
+
     re::nfpii::tagManager.SetRemoveAfterSeconds(seconds);
 }
 
 void NfpiiSetTagEmulationPath(const char* path)
 {
+    LogHandler::Info("Module: Update tag emulation path to: '%s'", path);
+
     re::nfpii::tagManager.SetTagEmulationPath(path);
 }
 
@@ -79,6 +91,8 @@ const char* NfpiiGetTagEmulationPath(void)
 
 NFCError NfpiiQueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg)
 {
+    LogHandler::Info("Module: Queued NFCGetTagInfo");
+
     return re::nfpii::tagManager.QueueNFCGetTagInfo(callback, arg);
 }
 

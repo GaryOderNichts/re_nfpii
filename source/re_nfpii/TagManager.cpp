@@ -5,6 +5,7 @@
 #include "ntag_crypt.h"
 #include "debug/logger.h"
 #include "utils/FSUtils.hpp"
+#include "utils/LogHandler.hpp"
 
 #include <cstring>
 
@@ -170,6 +171,7 @@ Result TagManager::StartDetection()
 
         // We still "succeed" on failure but turn off emulation
         if (res.IsFailure()) {
+            LogHandler::Warn("LoadTag failed, turning off emulation...");
             emulationState = EMULATION_OFF;
         }
     }
@@ -1039,6 +1041,7 @@ Result TagManager::LoadTag()
     // We need at least everything up to the config bytes
     if (res < 0x214) {
         DEBUG_FUNCTION_LINE("Failed to read tag data from %s: %x", tagEmulationPath.c_str(), res);
+        LogHandler::Error("Failed to read tag data from %s: %x", tagEmulationPath.c_str(), res);
         return NFP_STATUS_RESULT(0x12345);
     }
 
@@ -1046,12 +1049,14 @@ Result TagManager::LoadTag()
     NTAGData data;
     if (NTAGDecrypt(&data, &raw) != 0) {
         DEBUG_FUNCTION_LINE("Failed to parse tag");
+        LogHandler::Error("Failed to parse tag");
         return NFP_STATUS_RESULT(0x12345);
     }
 
     if (!CheckAmiiboMagic(&data)) {
         tagStates[currentTagIndex].state = 5;
         DEBUG_FUNCTION_LINE("Invalid tag magic");
+        LogHandler::Error("Invalid tag magic");
         return NFP_STATUS_RESULT(0x12345);
     }
 
@@ -1104,6 +1109,7 @@ void TagManager::HandleTagUpdates()
 
             // We still "succeed" on failure but turn off emulation
             if (res.IsFailure()) {
+                LogHandler::Warn("LoadTag failed, turning off emulation...");
                 emulationState = EMULATION_OFF;
             }
         }
