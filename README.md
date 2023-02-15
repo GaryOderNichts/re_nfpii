@@ -14,7 +14,8 @@ The plugin handles the configurarion menu for the module and some additional thi
 ## Usage
 - Download the [latest release](https://github.com/GaryOderNichts/re_nfpii/releases) or the artifacts of latest nightly build from [here](https://github.com/GaryOderNichts/re_nfpii/actions) (Requires a GitHub account).
 - Copy the contents of the downloaded *`.zip`* file to your target environment.
-- Copy your (encrypted!) amiibo dumps to `wiiu/re_nfpii`.
+- Copy your (encrypted!) amiibo dumps to `wiiu/re_nfpii`. Subfolders are also supported and can be browsed from the configuration menu.  
+  Folders in the `re_nfpii` folder starting with a [Title ID](https://wiiubrew.org/wiki/Title_database) (without the `-`) will be automatically opened for that game (for example  a folder named `0005000010144F00 - Smash Bros` would automatically open for Smash Bros USA).
 - Open the plugin configuration menu with L + Down + SELECT.
 - Select one of your amiibo and enable emulation.
 
