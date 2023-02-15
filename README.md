@@ -35,8 +35,7 @@ This currently just reimplements the major parts of nn_nfp and redirects tag rea
 For future releases it is planned to have additional features and a custom format which does not require encryption.
 
 ## Building
-This currently uses a custom build of [wut](https://github.com/GaryOderNichts/wut/tree/re_nfpii) until I'll make a PR with all of the missing error descriptions and structs.  
-I recommend building using the Dockerfile:
+Building re_nfpii using the Dockerfile is recommended:
 ```
 # Build docker image (only needed once)
 docker build . -t re_nfpii_builder

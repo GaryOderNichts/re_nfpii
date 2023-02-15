@@ -54,9 +54,9 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
     bool openTidFolder = true;
 
     // jump to the path of the currently selected amiibo
-    if (!item->selectedAmiibo.empty() && item->selectedAmiibo.starts_with(item->rootPath)) {
-        item->currentPath = item->selectedAmiibo.substr(0, item->selectedAmiibo.find_last_of("/") + 1);
-    }
+    // if (!item->selectedAmiibo.empty() && item->selectedAmiibo.starts_with(item->rootPath)) {
+    //     item->currentPath = item->selectedAmiibo.substr(0, item->selectedAmiibo.find_last_of("/") + 1);
+    // }
 
     // Init DrawUtils
     DrawUtils::initBuffers();

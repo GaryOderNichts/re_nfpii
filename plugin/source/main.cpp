@@ -15,7 +15,7 @@
 
 WUPS_PLUGIN_NAME("re_nfpii");
 WUPS_PLUGIN_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
-WUPS_PLUGIN_VERSION("v0.1.0");
+WUPS_PLUGIN_VERSION("v0.2.0");
 WUPS_PLUGIN_AUTHOR("GaryOderNichts");
 WUPS_PLUGIN_LICENSE("GPLv2");
 
