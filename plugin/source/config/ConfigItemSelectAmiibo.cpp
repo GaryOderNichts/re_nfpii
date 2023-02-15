@@ -9,6 +9,7 @@
 #include <cstdarg>
 #include <algorithm>
 
+#include <coreinit/title.h>
 #include <vpad/input.h>
 #include <padscore/kpad.h>
 
@@ -50,6 +51,7 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
 {
     std::vector<ListEntry> entries;
     bool highlightSelected = true;
+    bool openTidFolder = true;
 
     // jump to the path of the currently selected amiibo
     if (!item->selectedAmiibo.empty() && item->selectedAmiibo.starts_with(item->rootPath)) {
@@ -63,6 +65,7 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
     }
 
     while (true) {
+        refresh: ;
         entries.clear();
 
         // Add top entry
@@ -95,6 +98,25 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
             ConfigItemLog_PrintType(LOG_TYPE_ERROR, "Failed to open amiibo folder, make sure it exists!");
             return;
         }
+
+        // check if there is a folder in the root which starts with the current TID
+        if (openTidFolder && item->currentPath == item->rootPath) {
+            uint64_t titleId = OSGetTitleID();
+            char titleIdString[17];
+            snprintf(titleIdString, sizeof(titleIdString), "%016llx", titleId);
+
+            for (ListEntry& e : entries) {
+                if (e.type == LIST_ENTRY_TYPE_DIR) {
+                    if (e.name.starts_with(titleIdString)) {
+                        // open it if there is
+                        item->currentPath += e.name + "/";
+                        openTidFolder = false;
+                        goto refresh;
+                    }
+                }
+            }
+        }
+        openTidFolder = false;
 
         // sort files
         std::sort(entries.begin(), entries.end(),
@@ -132,7 +154,7 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
 
         uint32_t currentIndex = (selected > 0 && highlightSelected) ? selected : 0;
         uint32_t start = 0;
-        uint32_t end = (entries.size() > MAX_ENTRIES_PER_PAGE) ? MAX_ENTRIES_PER_PAGE : entries.size();
+        uint32_t end = std::min(entries.size(), (uint32_t) MAX_ENTRIES_PER_PAGE);
 
         // only highlight selected item once
         highlightSelected = false;
