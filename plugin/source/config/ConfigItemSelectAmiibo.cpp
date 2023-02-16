@@ -107,7 +107,7 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
 
             for (ListEntry& e : entries) {
                 if (e.type == LIST_ENTRY_TYPE_DIR) {
-                    if (e.name.starts_with(titleIdString)) {
+                    if (strncasecmp(e.name.c_str(), titleIdString, 16) == 0) {
                         // open it if there is
                         item->currentPath += e.name + "/";
                         openTidFolder = false;
