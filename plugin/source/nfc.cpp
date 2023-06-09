@@ -16,7 +16,7 @@ DECL_FUNCTION(NFCError, NFCGetTagInfo, uint32_t index, uint32_t timeout, NFCTagI
     // DEBUG_FUNCTION_LINE("NFCGetTagInfo");
 
     if (!NfpiiIsInitialized()) {
-        return NFC_ERR_NOT_INIT;
+        return real_NFCGetTagInfo(index, timeout, callback, arg);
     }
 
     if (index != 0) {
