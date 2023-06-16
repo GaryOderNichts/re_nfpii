@@ -13,7 +13,7 @@
 WUMS_MODULE_EXPORT_NAME("nn_nfp");
 WUMS_MODULE_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
 WUMS_MODULE_AUTHOR("GaryOderNichts");
-WUMS_MODULE_VERSION("v0.2.1");
+WUMS_MODULE_VERSION("v0.2.2");
 WUMS_MODULE_LICENSE("GPLv2");
 
 WUMS_INITIALIZE(myargs)

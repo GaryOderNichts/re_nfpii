@@ -4,14 +4,15 @@ on: [push, pull_request]
 
 jobs:
   build-binary:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Build binary
       run: |
         docker build -t re_nfpii_builder .
         docker run --rm -v ${PWD}:/project re_nfpii_builder make dist
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
        name: re_nfpii
        path: dist/*
+       if-no-files-found: error
