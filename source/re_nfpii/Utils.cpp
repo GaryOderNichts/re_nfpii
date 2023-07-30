@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <coreinit/time.h>
 #include <coreinit/userconfig.h>
+#include <nfc/nfc.h>
 
 namespace re::nfpii {
 
@@ -42,74 +43,74 @@ uint16_t IncreaseCount(uint16_t count, bool overflow)
     return count + 1;
 }
 
-static uint8_t FindTagType(uint8_t p, uint8_t t)
+static TagType FindTagType(NFCTechnology technology, NFCProtocol protocol)
 {
-    static uint8_t p0_lookup[] = { 1, 1, 2, 4 };
-    static uint8_t p1_lookup[] = { 8, 1, 2, 4 };
-    static uint8_t p2_lookup[] = { 16, 1, 2, 4 };
+    static TagType tt_lookup[] = { TagType::Type1Tag, TagType::Type2Tag, TagType::Type3Tag };
 
-    switch (p) {
-    case 0:
-        if (t != 0 && t < 4) {
-            return p0_lookup[t];
+    switch (technology) {
+    case NFC_TECHNOLOGY_A:
+        if (protocol != NFC_PROTOCOL_UNKNOWN && protocol <= NFC_PROTOCOL_T3T) {
+            return tt_lookup[protocol - 1];
         }
         break;
-    case 1:
-        if (t != 0 && t < 4) {
-            return p1_lookup[t];
+    case NFC_TECHNOLOGY_B:
+        if (protocol != NFC_PROTOCOL_UNKNOWN && protocol <= NFC_PROTOCOL_T3T) {
+            return tt_lookup[protocol - 1];
         }
         break;
-    case 2:
-        if (t != 0 && t < 4) {
-            return p2_lookup[t];
+    case NFC_TECHNOLOGY_F:
+        if (protocol != NFC_PROTOCOL_UNKNOWN && protocol <= NFC_PROTOCOL_T3T) {
+            return tt_lookup[protocol - 1];
         }
         break;
-    case 6:
-    case 0x83:
-        return 0x20;
+    case NFC_TECHNOLOGY_ISO15693:
+        if (protocol == NFC_PROTOCOL_15693) {
+            return TagType::Iso15693;
+        }
+        break;
     }
 
-    return 0;
+    return TagType::Unknown;
 }
 
-void ReadTagInfo(TagInfo* info, const NTAGData* data)
+void ReadTagInfo(TagInfo* info, const NTAGDataT2T* data)
 {
     assert(info);
     
-    memcpy(info->id.uid, data->uid, data->uidSize);
-    info->id.size = data->uidSize;
-    info->protocol = data->protocol;
-    info->tag_type = FindTagType(data->protocol, data->tagType);   
+    memcpy(info->id.uid, data->tagInfo.uid, data->tagInfo.uidSize);
+    info->id.size = data->tagInfo.uidSize;
+    info->technology = data->tagInfo.technology;
+    info->tag_type = FindTagType(data->tagInfo.technology, data->tagInfo.protocol);   
 }
 
-void ReadCommonInfo(CommonInfo* info, const NTAGData* data)
+void ReadCommonInfo(CommonInfo* info, const NTAGDataT2T* data)
 {
     assert(info);
 
-    if (!(data->info.flags_hi & (uint8_t) AdminFlags::IsRegistered) && !(data->info.flags_hi & (uint8_t) AdminFlags::HasApplicationData)) {
+    if (!(data->info.flags & (uint8_t) AdminFlags::IsRegistered) && !(data->info.flags & (uint8_t) AdminFlags::HasApplicationData)) {
         ConvertAmiiboDate(&info->lastWriteDate, 0);
-        info->writes = data->info.writeCount;
-        memcpy(&info->characterID, data->info.characterInfo, 3);
-        info->numberingID = data->info.modelNumber;
+        info->writes = data->info.writes;
+        memcpy(&info->characterID, data->info.characterID, 3);
+        info->numberingID = data->info.numberingID;
         info->figureType = data->info.figureType;
-        info->seriesID = data->info.series;
+        info->seriesID = data->info.seriesID;
         info->applicationAreaSize = data->appData.size;
-        info->figureVersion = data->info.zero;
+        info->figureVersion = data->info.figureVersion;
         memset(info->reserved, 0, sizeof(info->reserved));
     } else {
         ConvertAmiiboDate(&info->lastWriteDate, data->info.lastWriteDate);
-        info->writes = data->info.writeCount;
-        memcpy(&info->characterID, data->info.characterInfo, 3);
-        info->numberingID = data->info.modelNumber;
+        info->writes = data->info.writes;
+        memcpy(&info->characterID, data->info.characterID, 3);
+        info->numberingID = data->info.numberingID;
         info->figureType = data->info.figureType;
-        info->seriesID = data->info.series;
+        info->seriesID = data->info.seriesID;
         info->applicationAreaSize = data->appData.size;
-        info->figureVersion = data->info.zero;
+        info->figureVersion = data->info.figureVersion;
         memset(info->reserved, 0, sizeof(info->reserved));
     }
 }
 
-void ReadRegisterInfo(RegisterInfo* info, const NTAGData* data)
+void ReadRegisterInfo(RegisterInfo* info, const NTAGDataT2T* data)
 {
     assert(info);
 
@@ -118,19 +119,19 @@ void ReadRegisterInfo(RegisterInfo* info, const NTAGData* data)
     // null-terminate name
     info->name[10] = 0;
     ConvertAmiiboDate(&info->registerDate, data->info.setupDate);
-    info->flags = data->info.flags_lo;
-    info->country = data->info.countryCode;
+    info->fontRegion = data->info.fontRegion;
+    info->country = data->info.country;
     memset(info->reserved, 0, sizeof(info->reserved));
 }
 
-void ReadReadOnlyInfo(ReadOnlyInfo* info, const NTAGData* data)
+void ReadReadOnlyInfo(ReadOnlyInfo* info, const NTAGDataT2T* data)
 {
     assert(info);
 
-    memcpy(&info->characterID, data->info.characterInfo, 3);
-    info->numberingID = data->info.modelNumber;
+    memcpy(&info->characterID, data->info.characterID, 3);
+    info->numberingID = data->info.numberingID;
     info->figureType = data->info.figureType;
-    info->seriesID = data->info.series;
+    info->seriesID = data->info.seriesID;
     memset(info->reserved, 0, sizeof(info->reserved));
 }
 
@@ -146,47 +147,47 @@ static uint8_t GetPlatform(uint64_t titleId) {
     return 0xff;
 }
 
-void ReadAdminInfo(AdminInfo* info, const NTAGData* data)
+void ReadAdminInfo(AdminInfo* info, const NTAGDataT2T* data)
 {
     assert(info);
 
-    if (!(data->info.flags_hi & (uint8_t) AdminFlags::HasApplicationData)) {
-        info->flags = (AdminFlags) data->info.flags_hi;
+    if (!(data->info.flags & (uint8_t) AdminFlags::HasApplicationData)) {
+        info->flags = (AdminFlags) data->info.flags;
         info->titleID = 0;
         info->platform = 0xff;
         info->accessID = 0;
-        info->applicationAreaWrites = data->info.appDataUpdateCount;
+        info->applicationAreaWrites = data->info.applicationAreaWrites;
         info->formatVersion = data->formatVersion;
         memset(info->reserved, 0, sizeof(info->reserved));
     } else {
-        info->titleID = data->info.titleId;
-        info->accessID = data->info.appId;
-        info->platform = GetPlatform(data->info.titleId);
-        info->flags = (AdminFlags) data->info.flags_hi;
-        info->applicationAreaWrites = data->info.appDataUpdateCount;
+        info->titleID = data->info.titleID;
+        info->accessID = data->info.accessID;
+        info->platform = GetPlatform(data->info.titleID);
+        info->flags = (AdminFlags) data->info.flags;
+        info->applicationAreaWrites = data->info.applicationAreaWrites;
         info->formatVersion = data->formatVersion;
         memset(info->reserved, 0, sizeof(info->reserved));
     }
 }
 
-void ClearApplicationArea(NTAGData* data)
+void ClearApplicationArea(NTAGDataT2T* data)
 {
-    GetRandom(&data->info.appId, sizeof(data->info.appId));
-    GetRandom(&data->info.titleId, sizeof(data->info.titleId));
+    GetRandom(&data->info.accessID, sizeof(data->info.accessID));
+    GetRandom(&data->info.titleID, sizeof(data->info.titleID));
     GetRandom(&data->appData.data, sizeof(data->appData.data));
     // clear the "has application area" bit
-    data->info.flags_hi &= ~(uint8_t) AdminFlags::HasApplicationData;
+    data->info.flags &= ~(uint8_t) AdminFlags::HasApplicationData;
 }
 
-void ClearRegisterInfo(NTAGData* data)
+void ClearRegisterInfo(NTAGDataT2T* data)
 {
-    data->info.flags_lo = 0;
-    data->info.countryCode = 0;
+    data->info.fontRegion = 0;
+    data->info.country = 0;
     data->info.setupDate = rand();
     GetRandom(data->info.name, sizeof(data->info.name));
     GetRandom(&data->info.mii, sizeof(data->info.mii));
     // clear the "has register info" bit
-    data->info.flags_hi &= ~(uint8_t) AdminFlags::IsRegistered;
+    data->info.flags &= ~(uint8_t) AdminFlags::IsRegistered;
 }
 
 static bool ReadSysConfig(const char* name, UCDataType type, uint32_t size, void* data)
@@ -265,12 +266,12 @@ void ConvertAmiiboDate(Date* date, uint16_t time)
     date->year = year;
 }
 
-bool CheckAmiiboMagic(NTAGData* data)
+bool CheckAmiiboMagic(NTAGDataT2T* data)
 {
     return data->info.magic == 0xa5;
 }
 
-bool CheckUuidCRC(NTAGInfo* info)
+bool CheckUuidCRC(NTAGInfoT2T* info)
 {
     // TODO
     return true;

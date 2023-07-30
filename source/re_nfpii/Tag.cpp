@@ -17,7 +17,7 @@ Tag::Tag()
     memset(appAreaInfo, 0, sizeof(appAreaInfo));
     dataBufferCapacity = 0;
     updateTitleId = false;
-    updateWriteCount = false;
+    updateAppWriteCount = false;
     memset(&ntagData, 0, sizeof(ntagData));
 }
 
@@ -25,13 +25,13 @@ Tag::~Tag()
 {
 }
 
-Result Tag::SetData(NTAGData* data)
+Result Tag::SetData(NTAGDataT2T* data)
 {
-    memmove(&ntagData, data, sizeof(NTAGData));
+    memmove(&ntagData, data, sizeof(NTAGDataT2T));
     return NFP_SUCCESS;
 }
 
-NTAGData* Tag::GetData()
+NTAGDataT2T* Tag::GetData()
 {
     return &ntagData;
 }
@@ -52,7 +52,7 @@ Result Tag::Mount(bool backup)
     UpdateAppAreaInfo(false);
 
     updateTitleId = false;
-    updateWriteCount = false;
+    updateAppWriteCount = false;
 
     return NFP_SUCCESS;
 }
@@ -99,24 +99,24 @@ Result Tag::Write(TagInfo* info, bool update)
     memcpy(ntagData.appData.data, dataBuffer + 0x130, 0xd8);
 
     // Backup values we might restore if writing to tag fails
-    uint64_t currentTitleId = ntagData.info.titleId;
-    uint16_t currentCryptCount = ntagData.info.cryptCount;
-    uint16_t currentWriteCount = ntagData.info.writeCount;
-    uint16_t currentAppDataUpdateCount = ntagData.info.appDataUpdateCount;
+    uint64_t currentTitleId = ntagData.info.titleID;
+    uint16_t currentWrites = ntagData.info.writes;
+    uint16_t currentApplicationAreaWrites = ntagData.info.applicationAreaWrites;
+    uint16_t currentCrcCounter = ntagData.info.crcCounter;
 
     if (update) {
-        ntagData.info.cryptCount = IncreaseCount(ntagData.info.cryptCount, true);
+        ntagData.info.writes = IncreaseCount(ntagData.info.writes, true);
 
-        if (updateWriteCount) {
-            ntagData.info.writeCount = IncreaseCount(ntagData.info.writeCount, false);
+        if (updateAppWriteCount) {
+            ntagData.info.applicationAreaWrites = IncreaseCount(ntagData.info.applicationAreaWrites, false);
         }
 
         if (updateTitleId) {
-            ntagData.info.titleId = OSGetTitleID();
+            ntagData.info.titleID = OSGetTitleID();
         }
 
         if (!CheckUuidCRC(&ntagData.info)) {
-            ntagData.info.appDataUpdateCount = IncreaseCount(ntagData.info.appDataUpdateCount, false);
+            ntagData.info.crcCounter = IncreaseCount(ntagData.info.crcCounter, false);
             SetUuidCRC(&ntagData.info.crc);
         }
 
@@ -126,17 +126,17 @@ Result Tag::Write(TagInfo* info, bool update)
     Result res = WriteTag(true);
     if (res.IsFailure()) {
         // Restore values if writing failed
-        ntagData.info.appDataUpdateCount = currentAppDataUpdateCount;
-        ntagData.info.cryptCount = currentCryptCount;
-        ntagData.info.writeCount = currentWriteCount;
-        ntagData.info.titleId = currentTitleId;
+        ntagData.info.crcCounter = currentCrcCounter;
+        ntagData.info.titleID = currentTitleId;
+        ntagData.info.writes = currentWrites;
+        ntagData.info.applicationAreaWrites = currentApplicationAreaWrites;
         return res;
     }
 
     return NFP_SUCCESS;
 }
 
-Result Tag::InitializeDataBuffer(const NTAGData* data)
+Result Tag::InitializeDataBuffer(const NTAGDataT2T* data)
 {
     memset(dataBuffer, 0, sizeof(dataBuffer));
     memcpy(dataBuffer + 0x130, data->appData.data, sizeof(data->appData.data));
@@ -151,7 +151,7 @@ Result Tag::WriteDataBuffer(const void* data, int32_t offset, uint32_t size)
 
     memcpy(dataBuffer + offset, data, size);
 
-    updateWriteCount = true;
+    updateAppWriteCount = true;
     updateTitleId = true;
 
     return NFP_SUCCESS;
@@ -173,11 +173,11 @@ void Tag::ClearTagData()
     memset(&ntagData, 0, sizeof(ntagData));
 }
 
-Result Tag::CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo const& createInfo)
+Result Tag::CreateApplicationArea(NTAGDataT2T* data, ApplicationAreaCreateInfo const& createInfo)
 {
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, data);
-    if (tagInfo.tag_type != 2) {
+    if (tagInfo.tag_type != TagType::Type2Tag) {
         return NFP_INVALID_TAG;
     }
 
@@ -194,14 +194,14 @@ Result Tag::CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo cons
     }
 
     // Backup current working buffer in case anything fails, to not modify state
-    NTAGData backupData;
-    memcpy(&backupData, &ntagData, sizeof(NTAGData));
+    NTAGDataT2T backupData;
+    memcpy(&backupData, &ntagData, sizeof(NTAGDataT2T));
 
     // Move data into working buffer
-    memmove(&ntagData, data, sizeof(NTAGData));
+    memmove(&ntagData, data, sizeof(NTAGDataT2T));
 
     updateTitleId = true;
-    ntagData.info.appId = createInfo.accessID;
+    ntagData.info.accessID = createInfo.accessID;
 
     memset(tagInfo.reserved1, 0, sizeof(tagInfo.reserved1));
 
@@ -217,13 +217,13 @@ Result Tag::CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo cons
     WriteDataBuffer(applicationData, 0x130, ntagData.appData.size);
 
     // Set the "has application area" flag
-    ntagData.info.flags_hi |= (uint8_t) AdminFlags::HasApplicationData;
+    ntagData.info.flags |= (uint8_t) AdminFlags::HasApplicationData;
 
     // Write the data to the tag
     Result res = Write(&tagInfo, true);
     if (res.IsFailure()) {
         // Restore the backed up state, if writing failed
-        memcpy(&ntagData, &backupData, sizeof(NTAGData));
+        memcpy(&ntagData, &backupData, sizeof(NTAGDataT2T));
         return res;
     }
 
@@ -241,21 +241,21 @@ Result Tag::SetRegisterInfo(RegisterInfoSet const& info)
         return NFP_OUT_OF_RANGE;
     }
 
-    ntagData.info.zero = 0;
-    ReadCountryRegion(&ntagData.info.countryCode);
+    ntagData.info.figureVersion = 0;
+    ReadCountryRegion(&ntagData.info.country);
     memcpy(&ntagData.info.mii, &info.mii, sizeof(info.mii));
     UpdateMii(&ntagData.info.mii);
     memcpy(ntagData.info.name, info.name, sizeof(ntagData.info.name));
-    ntagData.info.flags_lo = info.flags;
+    ntagData.info.fontRegion = info.fontRegion;
 
     // If we don't have any register info yet, write setup date
     if (!HasRegisterInfo()) {
         ntagData.info.setupDate = OSTimeToAmiiboTime(OSGetTime());
-        updateWriteCount = true;
+        updateAppWriteCount = true;
     }
 
     // Set "has register info" bit
-    ntagData.info.flags_hi |= (uint8_t) AdminFlags::IsRegistered;
+    ntagData.info.flags |= (uint8_t) AdminFlags::IsRegistered;
 
     return NFP_SUCCESS;
 }
@@ -264,23 +264,23 @@ Result Tag::DeleteApplicationArea()
 {
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, &ntagData);
-    if (tagInfo.tag_type != 2) {
+    if (tagInfo.tag_type != TagType::Type2Tag) {
         return NFP_INVALID_TAG;
     }
 
     // Backup current working buffer in case anything fails, to not modify state
-    NTAGData backupData;
-    memcpy(&backupData, &ntagData, sizeof(NTAGData));
+    NTAGDataT2T backupData;
+    memcpy(&backupData, &ntagData, sizeof(NTAGDataT2T));
 
-    // Delete app area and increase encryption count
+    // Delete app area and increase write count
     ClearApplicationArea(&ntagData);
-    ntagData.info.cryptCount = IncreaseCount(ntagData.info.cryptCount, true);
+    ntagData.info.writes = IncreaseCount(ntagData.info.writes, true);
 
     // Write the data to the tag
     Result res = Write(&tagInfo, true);
     if (res.IsFailure()) {
         // Restore the backed up state, if writing failed
-        memcpy(&ntagData, &backupData, sizeof(NTAGData));
+        memcpy(&ntagData, &backupData, sizeof(NTAGDataT2T));
         return res;
     }
 
@@ -294,23 +294,23 @@ Result Tag::DeleteRegisterInfo()
 {
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, &ntagData);
-    if (tagInfo.tag_type != 2) {
+    if (tagInfo.tag_type != TagType::Type2Tag) {
         return NFP_INVALID_TAG;
     }
 
     // Backup current working buffer in case anything fails, to not modify state
-    NTAGData backupData;
-    memcpy(&backupData, &ntagData, sizeof(NTAGData));
+    NTAGDataT2T backupData;
+    memcpy(&backupData, &ntagData, sizeof(NTAGDataT2T));
 
-    // Delete register info and increase encryption count
+    // Delete register info and increase write count
     ClearRegisterInfo(&ntagData);
-    ntagData.info.cryptCount = IncreaseCount(ntagData.info.cryptCount, true);
+    ntagData.info.writes = IncreaseCount(ntagData.info.writes, true);
 
     // Write the data to the tag
     Result res = Write(&tagInfo, true);
     if (res.IsFailure()) {
         // Restore the backed up state, if writing failed
-        memcpy(&ntagData, &backupData, sizeof(NTAGData));
+        memcpy(&ntagData, &backupData, sizeof(NTAGDataT2T));
         return res;
     }
 
@@ -320,7 +320,7 @@ Result Tag::DeleteRegisterInfo()
     return NFP_SUCCESS;
 }
 
-Result Tag::Format(NTAGData* data, const void* appData, int32_t appDataSize)
+Result Tag::Format(NTAGDataT2T* data, const void* appData, int32_t appDataSize)
 {
     if ((appDataSize > 1 && !appData) || appDataSize > 0xd8) {
         return NFP_INVALID_PARAM;
@@ -328,26 +328,26 @@ Result Tag::Format(NTAGData* data, const void* appData, int32_t appDataSize)
 
     TagInfo tagInfo;
     ReadTagInfo(&tagInfo, data);
-    if (tagInfo.tag_type != 2) {
+    if (tagInfo.tag_type != TagType::Type2Tag) {
         return NFP_INVALID_TAG;
     }
 
     // Move data into working buffer
-    memmove(&ntagData, data, sizeof(NTAGData));
+    memmove(&ntagData, data, sizeof(NTAGDataT2T));
 
     // Clear and randomize all data
     ntagData.info.magic = 0xa5;
-    ntagData.info.flags_hi = 0;
-    ntagData.info.zero = 0;
-    ntagData.info.countryCode = 0;
-    ntagData.info.cryptCount = rand() | 0x8000;
-    ntagData.info.writeCount = 0;
-    ntagData.info.appDataUpdateCount = 0;
-    ntagData.info.flags_lo = 0;
+    ntagData.info.flags = 0;
+    ntagData.info.figureVersion = 0;
+    ntagData.info.country = 0;
+    ntagData.info.writes = rand() | 0x8000;
+    ntagData.info.crcCounter = 0;
+    ntagData.info.applicationAreaWrites = 0;
+    ntagData.info.fontRegion = 0;
     ntagData.info.setupDate = rand();
     ntagData.info.lastWriteDate = rand();
-    GetRandom(&ntagData.info.appId, sizeof(ntagData.info.appId));
-    GetRandom(&ntagData.info.titleId, sizeof(ntagData.info.titleId));
+    GetRandom(&ntagData.info.accessID, sizeof(ntagData.info.accessID));
+    GetRandom(&ntagData.info.titleID, sizeof(ntagData.info.titleID));
     GetRandom(&ntagData.info.crc, sizeof(ntagData.info.crc));
     GetRandom(&ntagData.info.name, sizeof(ntagData.info.name));
     GetRandom(&ntagData.info.mii, sizeof(ntagData.info.mii));
@@ -365,12 +365,12 @@ Result Tag::Format(NTAGData* data, const void* appData, int32_t appDataSize)
 
 bool Tag::HasRegisterInfo()
 {
-    return ntagData.info.flags_hi & (uint8_t) AdminFlags::IsRegistered;
+    return ntagData.info.flags & (uint8_t) AdminFlags::IsRegistered;
 }
 
 bool Tag::IsExistApplicationArea()
 {
-    return ntagData.info.flags_hi & (uint8_t) AdminFlags::HasApplicationData;
+    return ntagData.info.flags & (uint8_t) AdminFlags::HasApplicationData;
 }
 
 Result Tag::UpdateAppAreaInfo(bool unk)
@@ -381,7 +381,7 @@ Result Tag::UpdateAppAreaInfo(bool unk)
 
     appAreaInfo[0].offset = 0x130;
     appAreaInfo[0].size = ntagData.appData.size;
-    appAreaInfo[0].id = ntagData.info.appId;
+    appAreaInfo[0].id = ntagData.info.accessID;
 
     return NFP_SUCCESS;
 }
@@ -391,7 +391,7 @@ Result Tag::WriteTag(bool backup)
     // nfp usually writes to the tag using NTAG here
     // this code is mostly custom and writes the data to the SD instead
 
-    NTAGRawData raw;
+    NTAGRawDataT2T raw;
     if (NTAGEncrypt(&raw, GetData()) != 0) {
         return NFP_STATUS_RESULT(0x12345);
     }
@@ -405,7 +405,7 @@ Result Tag::WriteTag(bool backup)
     }
 
     // copy the new encrypted raw data to the raw part
-    memcpy(&ntagData.rawData, &raw, sizeof(raw));
+    memcpy(&ntagData.raw.data, &raw, sizeof(raw));
 
     return NFP_SUCCESS;
 }

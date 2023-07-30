@@ -1,7 +1,7 @@
 #pragma once
 
 #include <nn/nfp.h>
-#include <ntag.h>
+#include <ntag/ntag.h>
 
 #include "TagManager.hpp"
 

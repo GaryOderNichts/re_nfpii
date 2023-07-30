@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ntag.h>
+#include <ntag/ntag.h>
 #include <nn/nfp.h>
 
 #include <string>
@@ -29,8 +29,8 @@ public:
         uint32_t size;
     };
 
-    Result SetData(NTAGData* data);
-    NTAGData* GetData();
+    Result SetData(NTAGDataT2T* data);
+    NTAGDataT2T* GetData();
 
     Result Mount(bool backup);
     Result Mount();
@@ -42,18 +42,18 @@ public:
 
     Result Write(TagInfo* info, bool update);
 
-    Result InitializeDataBuffer(const NTAGData* data);
+    Result InitializeDataBuffer(const NTAGDataT2T* data);
     Result WriteDataBuffer(const void* data, int32_t offset, uint32_t size);
     Result ReadDataBuffer(void* out, int32_t offset, uint32_t size);
 
     void ClearTagData();
 
-    Result CreateApplicationArea(NTAGData* data, ApplicationAreaCreateInfo const& createInfo);
+    Result CreateApplicationArea(NTAGDataT2T* data, ApplicationAreaCreateInfo const& createInfo);
     Result SetRegisterInfo(RegisterInfoSet const& info);
 
     Result DeleteApplicationArea();
     Result DeleteRegisterInfo();
-    Result Format(NTAGData* data, const void* appData, int32_t appDataSize);
+    Result Format(NTAGDataT2T* data, const void* appData, int32_t appDataSize);
     
     bool HasRegisterInfo();
     bool IsExistApplicationArea();
@@ -70,7 +70,7 @@ public: // custom
 private:
     // +0x4
     uint8_t dataBuffer[0x800];
-    NTAGData ntagData;
+    NTAGDataT2T ntagData;
     uint32_t numAppAreas;
 
     // +0xdec
@@ -78,7 +78,7 @@ private:
     uint32_t dataBufferCapacity;
 
     // +0xf58
-    bool updateWriteCount;
+    bool updateAppWriteCount;
     bool updateTitleId;
 
 private: // custom

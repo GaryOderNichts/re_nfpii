@@ -75,10 +75,10 @@ static void cryptDataToRawData(NFCCryptData* crypt, NFCCryptData* raw)
     memcpy(dst + 0x208, src + 0x208, 0x14);
 }
 
-static int decryptGameData(NTAGRawData* data)
+static int decryptGameData(NTAGRawDataT2T* data)
 {
     // Only support version 2
-    if (data->section1.version != 2) {
+    if (data->section1.formatVersion != 2) {
         return -1;
     }
 
@@ -88,8 +88,8 @@ static int decryptGameData(NTAGRawData* data)
     }
 
     NFCCryptData rawData;
-    rawData.version = data->section1.version;
-    memcpy(rawData.data, data, sizeof(NTAGRawData));
+    rawData.version = data->section1.formatVersion;
+    memcpy(rawData.data, data, sizeof(NTAGRawDataT2T));
 
     NFCCryptData inData;
     rawDataToCryptData(&rawData, &inData);
@@ -109,15 +109,15 @@ static int decryptGameData(NTAGRawData* data)
         return -1;
     }
 
-    memcpy(data, rawData.data, sizeof(NTAGRawData));
+    memcpy(data, rawData.data, sizeof(NTAGRawDataT2T));
 
     return 0;
 }
 
-static int encryptGameData(NTAGRawData* data)
+static int encryptGameData(NTAGRawDataT2T* data)
 {
     // Only support version 2
-    if (data->section1.version != 2) {
+    if (data->section1.formatVersion != 2) {
         return -1;
     }
 
@@ -127,8 +127,8 @@ static int encryptGameData(NTAGRawData* data)
     }
 
     NFCCryptData rawData;
-    rawData.version = data->section1.version;
-    memcpy(rawData.data, data, sizeof(NTAGRawData));
+    rawData.version = data->section1.formatVersion;
+    memcpy(rawData.data, data, sizeof(NTAGRawDataT2T));
 
     NFCCryptData inData;
     rawDataToCryptData(&rawData, &inData);
@@ -148,27 +148,27 @@ static int encryptGameData(NTAGRawData* data)
         return -1;
     }
 
-    memcpy(data, rawData.data, sizeof(NTAGRawData));
+    memcpy(data, rawData.data, sizeof(NTAGRawDataT2T));
 
     return 0;
 }
 
-int NTAGDecrypt(NTAGData* data, NTAGRawData* raw)
+int NTAGDecrypt(NTAGDataT2T* data, NTAGRawDataT2T* raw)
 {
     // Verify tag version
-    if (raw->section1.version != 2) {
-        DEBUG_FUNCTION_LINE("Invalid format version: %u", raw->section1.version);
+    if (raw->section1.formatVersion != 2) {
+        DEBUG_FUNCTION_LINE("Invalid format version: %u", raw->section1.formatVersion);
         return -1;
     }
 
     // Copy UID, set proto and tag type
-    data->uidSize = 0x7;
-    memcpy(data->uid, raw->serial, data->uidSize);
-    data->protocol = 0x0;
-    data->tagType = 0x2;
+    data->tagInfo.uidSize = 0x7;
+    memcpy(data->tagInfo.uid, raw->uid, data->tagInfo.uidSize);
+    data->tagInfo.technology = NFC_TECHNOLOGY_A;
+    data->tagInfo.protocol = NFC_PROTOCOL_T2T;
 
     // Verify lock and cfg bytes
-    if (raw->lock_bytes[0] != 0x0f || raw->lock_bytes[1] != 0xe0 || raw->dynamicLock[0] != 0x01
+    if (raw->lockBytes[0] != 0x0f || raw->lockBytes[1] != 0xe0 || raw->dynamicLock[0] != 0x01
        || raw->dynamicLock[1] != 0x00 || raw->dynamicLock[2] != 0x0f || raw->cfg0[0] != 0x00 
        || raw->cfg0[1] != 0x00 || raw->cfg0[2] != 0x00 || raw->cfg0[3] != 0x04 || raw->cfg1[0] != 0x5f
        || raw->cfg1[2] != 0x00 || raw->cfg1[3] != 0x00) {
@@ -177,8 +177,8 @@ int NTAGDecrypt(NTAGData* data, NTAGRawData* raw)
     }
 
     // Store raw data
-    data->rawSize = sizeof(NTAGRawData);
-    memcpy(&data->rawData, raw, sizeof(NTAGRawData));
+    data->raw.size = sizeof(NTAGRawDataT2T);
+    memcpy(&data->raw.data, raw, sizeof(NTAGRawDataT2T));
 
     // Decrypt
     int res = decryptGameData(raw);
@@ -188,41 +188,41 @@ int NTAGDecrypt(NTAGData* data, NTAGRawData* raw)
     }
 
     // Convert
-    data->info.zero = raw->section0.zero;
+    data->info.figureVersion = raw->section0.figureVersion;
     data->info.setupDate = raw->section0.setupDate;
     data->info.magic = raw->section0.magic;
-    data->info.cryptCount = raw->section0.cryptCount;
-    data->info.flags_hi = raw->section0.flags >> 4;
-    data->info.countryCode = raw->section0.countryCode;
-    data->info.flags_lo = raw->section0.flags & 0xf;
-    data->info.appDataUpdateCount = raw->section0.appDataUpdateCount;
+    data->info.writes = raw->section0.writes;
+    data->info.flags = raw->section0.flags >> 4;
+    data->info.country = raw->section0.country;
+    data->info.fontRegion = raw->section0.flags & 0xf;
+    data->info.crcCounter = raw->section0.crcCounter;
     data->info.lastWriteDate = raw->section0.lastWriteDate;
-    data->info.crc = raw->section0.crc;
+    memcpy(&data->info.crc, &raw->section0.crc, sizeof(raw->section0.crc));
     memcpy(data->info.name, raw->section0.name, sizeof(raw->section0.name));
-    data->info.appId = raw->section2.appId;
-    memcpy(data->info.characterInfo, raw->section1.characterInfo, sizeof(raw->section1.characterInfo));
+    data->info.accessID = raw->section2.accessID;
+    memcpy(data->info.characterID, raw->section1.characterID, sizeof(raw->section1.characterID));
     data->info.figureType = raw->section1.figureType;
-    data->info.modelNumber = raw->section1.modelNumber;
-    data->info.series = raw->section1.series;
-    memcpy(data->info.unk0, &raw->section1.unk, sizeof(raw->section1.unk));
+    data->info.numberingID = raw->section1.numberingID;
+    data->info.seriesID = raw->section1.seriesID;
+    memcpy(&data->info.unknown, &raw->section1.unknown, sizeof(raw->section1.unknown));
     memcpy(&data->info.mii, &raw->section2.mii, sizeof(raw->section2.mii));
-    data->info.titleId = raw->section2.titleId;
-    data->info.writeCount = raw->section2.writeCount;
-    memset(data->info.unk1, 0, sizeof(data->info.unk1));
-    memcpy(data->info.unk1, raw->section2.unk, sizeof(raw->section2.unk));
+    data->info.titleID = raw->section2.titleID;
+    data->info.applicationAreaWrites = raw->section2.applicationAreaWrites;
+    memset(data->info.reserved, 0, sizeof(data->info.reserved));
+    memcpy(data->info.reserved, raw->section2.reserved, sizeof(raw->section2.reserved));
     memset(data->appData.data, 0, sizeof(data->appData.data));
     data->appData.size = 0xd8;
     memcpy(data->appData.data, raw->applicationData, data->appData.size);
-    data->formatVersion = raw->section1.version;
+    data->formatVersion = raw->section1.formatVersion;
 
     return 0;
 }
 
-int NTAGEncrypt(NTAGRawData* raw, NTAGData* data)
+int NTAGEncrypt(NTAGRawDataT2T* raw, NTAGDataT2T* data)
 {
 #if 0 // not doing this anymore since NTAGConvertT2T does no error handling and also corrupts data sometimes?
     // To encrypt we can simply call NTAGConvertT2T
-    NTAGData tmp;
+    NTAGDataT2T tmp;
     memset(&tmp, 0, sizeof(tmp));
 
     int res = NTAGConvertT2T(&tmp, data);
@@ -236,7 +236,7 @@ int NTAGEncrypt(NTAGRawData* raw, NTAGData* data)
         return -1;
     }
 
-    memcpy(raw, &data->rawData, sizeof(NTAGRawData));
+    memcpy(raw, &data->rawData, sizeof(NTAGRawDataT2T));
 
     // Copy over the individual modified sections
     memcpy(&raw->section0, &tmp.rawData.section0, sizeof(raw->section0));
@@ -246,32 +246,32 @@ int NTAGEncrypt(NTAGRawData* raw, NTAGData* data)
 #endif
 
     // Convert
-    memcpy(raw, &data->rawData, sizeof(data->rawData));
-    raw->section0.appDataUpdateCount = data->info.appDataUpdateCount;
+    memcpy(raw, &data->raw.data, sizeof(data->raw.data));
+    raw->section0.crcCounter = data->info.crcCounter;
     raw->section0.magic = data->info.magic;
-    raw->section0.cryptCount = data->info.cryptCount;
-    raw->section0.countryCode = data->info.countryCode;
-    raw->section0.flags = (data->info.flags_lo & 0xf) | (data->info.flags_hi << 4);
+    raw->section0.writes = data->info.writes;
+    raw->section0.country = data->info.country;
+    raw->section0.flags = (data->info.fontRegion & 0xf) | (data->info.flags << 4);
     raw->section0.setupDate = data->info.setupDate;
-    raw->section0.zero = data->info.zero;
+    raw->section0.figureVersion = data->info.figureVersion;
     raw->section0.lastWriteDate = data->info.lastWriteDate;
-    raw->section0.crc = data->info.crc;
-    raw->section2.appId = data->info.appId;
+    memcpy(&raw->section0.crc, &data->info.crc, sizeof(data->info.crc));
+    raw->section2.accessID = data->info.accessID;
     memcpy(raw->section0.name, data->info.name, sizeof(data->info.name));
-    memcpy(raw->section1.hmac0, data->rawData.section1.hmac0, sizeof(data->rawData.section1.hmac0));
-    memcpy(raw->section1.characterInfo, data->info.characterInfo, sizeof(data->info.characterInfo));
-    raw->section1.modelNumber = data->info.modelNumber;
-    raw->section1.series = data->info.series;
+    memcpy(raw->section1.tagHmac, data->raw.data.section1.tagHmac, sizeof(data->raw.data.section1.tagHmac));
+    memcpy(raw->section1.characterID, data->info.characterID, sizeof(data->info.characterID));
+    raw->section1.numberingID = data->info.numberingID;
+    raw->section1.seriesID = data->info.seriesID;
     raw->section1.figureType = data->info.figureType;
-    raw->section1.version = data->formatVersion;
-    memcpy(&raw->section1.unk, data->info.unk0, sizeof(data->info.unk0));
-    memcpy(raw->section1.hmac1, data->rawData.section1.hmac1, sizeof(data->rawData.section1.hmac1));
-    memcpy(raw->section1.hmac2, data->rawData.section1.hmac2, sizeof(data->rawData.section1.hmac2));
+    raw->section1.formatVersion = data->formatVersion;
+    memcpy(&raw->section1.unknown, &data->info.unknown, sizeof(data->info.unknown));
+    memcpy(raw->section1.keygenSalt, data->raw.data.section1.keygenSalt, sizeof(data->raw.data.section1.keygenSalt));
+    memcpy(raw->section1.dataHmac, data->raw.data.section1.dataHmac, sizeof(data->raw.data.section1.dataHmac));
     memcpy(&raw->section2.mii, &data->info.mii, sizeof(data->info.mii));
-    raw->section2.titleId = data->info.titleId;
-    raw->section2.writeCount = data->info.writeCount;
-    memcpy(raw->section2.unk, data->info.unk1, sizeof(raw->section2.unk));
-    memcpy(raw, &data->rawData, 0x10);
+    raw->section2.titleID = data->info.titleID;
+    raw->section2.applicationAreaWrites = data->info.applicationAreaWrites;
+    memcpy(raw->section2.reserved, data->info.reserved, sizeof(raw->section2.reserved));
+    memcpy(raw, &data->raw.data, 0x10);
     if (data->appData.size > 0xd8) {
         return -1;
     }

@@ -1,14 +1,14 @@
 #pragma once
 
-#include <ntag.h>
+#include <ntag/ntag.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int NTAGDecrypt(NTAGData* data, NTAGRawData* raw);
+int NTAGDecrypt(NTAGDataT2T* data, NTAGRawDataT2T* raw);
 
-int NTAGEncrypt(NTAGRawData* raw, NTAGData* data);
+int NTAGEncrypt(NTAGRawDataT2T* raw, NTAGDataT2T* data);
 
 #ifdef __cplusplus
 }

@@ -415,7 +415,7 @@ Result TagManager::Format(const void* data, int32_t size)
         return res;
     }
 
-    NTAGData* ntagData = tagStates[currentTagIndex].tag->GetData();
+    NTAGDataT2T* ntagData = tagStates[currentTagIndex].tag->GetData();
     res = tag.Format(ntagData, data, size);
     if (res.IsFailure()) {
         return res;
@@ -477,8 +477,8 @@ Result TagManager::WriteApplicationArea(const void* data, uint32_t size, const T
         return NFP_INVALID_STATE;
     }
 
-    NTAGData* ntagData = tagStates[currentTagIndex].tag->GetData();
-    if (ntagData->uidSize != tagId->size || (memcmp(ntagData->uid, tagId->uid, tagId->size) != 0)) {
+    NTAGDataT2T* ntagData = tagStates[currentTagIndex].tag->GetData();
+    if (ntagData->tagInfo.uidSize != tagId->size || (memcmp(ntagData->tagInfo.uid, tagId->uid, tagId->size) != 0)) {
         return NFP_APP_AREA_TAGID_MISMATCH;
     }
 
@@ -594,7 +594,7 @@ Result TagManager::GetNfpCommonInfo(CommonInfo* outCommonInfo)
 
     // TODO tag state stuff
 
-    NTAGData* data = tagStates[currentTagIndex].tag->GetData();
+    NTAGDataT2T* data = tagStates[currentTagIndex].tag->GetData();
     ReadCommonInfo(outCommonInfo, data);
 
     return NFP_SUCCESS;
@@ -626,7 +626,7 @@ Result TagManager::GetNfpRegisterInfo(RegisterInfo* outRegisterInfo)
         return NFP_NO_REGISTER_INFO;
     }
 
-    NTAGData* data = tagStates[currentTagIndex].tag->GetData();
+    NTAGDataT2T* data = tagStates[currentTagIndex].tag->GetData();
     ReadRegisterInfo(outRegisterInfo, data);
 
     return NFP_SUCCESS;
@@ -682,7 +682,7 @@ Result TagManager::GetNfpReadOnlyInfo(ReadOnlyInfo* outReadOnlyInfo)
 
     // TODO tag state stuff
 
-    NTAGData* data = tagStates[currentTagIndex].tag->GetData();
+    NTAGDataT2T* data = tagStates[currentTagIndex].tag->GetData();
     ReadReadOnlyInfo(outReadOnlyInfo, data);
 
     return NFP_SUCCESS;
@@ -710,7 +710,7 @@ Result TagManager::GetNfpRomInfo(RomInfo* outRomInfo)
 
     // TODO tag state stuff
 
-    NTAGData* data = tagStates[currentTagIndex].tag->GetData();
+    NTAGDataT2T* data = tagStates[currentTagIndex].tag->GetData();
     ReadReadOnlyInfo(outRomInfo, data);
 
     return NFP_SUCCESS;
@@ -738,7 +738,7 @@ Result TagManager::GetNfpAdminInfo(AdminInfo* outAdminInfo)
 
     // TODO tag state stuff
 
-    NTAGData* data = tagStates[currentTagIndex].tag->GetData();
+    NTAGDataT2T* data = tagStates[currentTagIndex].tag->GetData();
     ReadAdminInfo(outAdminInfo, data);
 
     return NFP_SUCCESS;
@@ -899,7 +899,7 @@ Result TagManager::VerifyTagInfo()
         return res;
     }
 
-    if (info.protocol != 0 || info.tag_type != 2) {
+    if (info.technology != NFC_TECHNOLOGY_A || info.tag_type != TagType::Type2Tag) {
         return NFP_INVALID_TAG_INFO;
     }
 
@@ -934,7 +934,7 @@ Result TagManager::GetTagInfo(TagInfo* outTagInfo, uint8_t index)
 
     memset(outTagInfo, 0, sizeof(TagInfo));
 
-    NTAGData* data = tagStates[index].tag->GetData();
+    NTAGDataT2T* data = tagStates[index].tag->GetData();
     ReadTagInfo(outTagInfo, data);
 
     if (outTagInfo->id.size > 10) {
@@ -1036,7 +1036,7 @@ Result TagManager::LoadTag()
     }
 
     // Read the tag
-    NTAGRawData raw;
+    NTAGRawDataT2T raw;
     int res = FSUtils::ReadFromFile(tagEmulationPath.c_str(), &raw, sizeof(raw));
     // We need at least everything up to the config bytes
     if (res < 0x214) {
@@ -1046,7 +1046,7 @@ Result TagManager::LoadTag()
     }
 
     // Decrypt the tag
-    NTAGData data;
+    NTAGDataT2T data;
     if (NTAGDecrypt(&data, &raw) != 0) {
         DEBUG_FUNCTION_LINE("Failed to parse tag");
         LogHandler::Error("Failed to parse tag");
@@ -1125,7 +1125,7 @@ void TagManager::HandleTagUpdates()
     }
 }
 
-NFCError TagManager::QueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg)
+NFCError TagManager::QueueNFCGetTagInfo(NFCGetTagInfoCallbackFn callback, void* arg)
 {
     Lock lock(&mutex);
 
@@ -1133,7 +1133,7 @@ NFCError TagManager::QueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg)
     nfcTagInfoCallback = callback;
     nfcTagInfoArg = arg;
 
-    return NFC_ERR_OK;
+    return 0;
 }
 
 void TagManager::HandleNFCGetTagInfo()
@@ -1142,7 +1142,7 @@ void TagManager::HandleNFCGetTagInfo()
         return;
     }
 
-    NFCError err = NFC_ERR_OK;
+    NFCError err = 0;
     NFCTagInfo nfcTagInfo{};
     if (emulationState != EMULATION_OFF) {
         // Set time once the tag should be removed, so it works properly in amiibo festival
@@ -1154,19 +1154,19 @@ void TagManager::HandleNFCGetTagInfo()
         // TODO: amiibo festival calls this several times, should probably cache the current tag data
         nfcTagInfo.uidSize = 7;
         if (FSUtils::ReadFromFile(tagEmulationPath.c_str(), nfcTagInfo.uid, nfcTagInfo.uidSize) != nfcTagInfo.uidSize) {
-            err = NFC_ERR_GET_TAG_INFO;
+            err = -0x1383;
         }
 
-        nfcTagInfo.protocol = 0;
-        nfcTagInfo.tag_type = 2;
+        nfcTagInfo.technology = NFC_TECHNOLOGY_A;
+        nfcTagInfo.protocol = NFC_PROTOCOL_T2T;
     } else {
-        err = NFC_ERR_GET_TAG_INFO;
+        err = -0x1383;
     }
 
     // Clear this before calling the callback, so one can requeue a taginfo request in the callback
     pendingTagInfo = false;
 
-    nfcTagInfoCallback(0, err, &nfcTagInfo, nfcTagInfoArg);
+    nfcTagInfoCallback(VPAD_CHAN_0, err, &nfcTagInfo, nfcTagInfoArg);
 }
 
 } // namespace re::nfpii

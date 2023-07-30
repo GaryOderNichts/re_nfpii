@@ -20,9 +20,9 @@ static void loadSysappFunctionPointers()
     OSDynLoad_Module sysappModule;
     OSDynLoad_Acquire("sysapp.rpl", &sysappModule);
 
-    OSDynLoad_FindExport(sysappModule, FALSE, "SYSDeserializeSysArgs", (void**) &dyn_SYSDeserializeSysArgs);
-    OSDynLoad_FindExport(sysappModule, FALSE, "_SYSDirectlyReturnToCaller", (void**) &dyn__SYSDirectlyReturnToCaller);
-    OSDynLoad_FindExport(sysappModule, FALSE, "_SYSDeserializeStandardArg", (void**) &dyn__SYSDeserializeStandardArg);
+    OSDynLoad_FindExport(sysappModule, OS_DYNLOAD_EXPORT_FUNC, "SYSDeserializeSysArgs", (void**) &dyn_SYSDeserializeSysArgs);
+    OSDynLoad_FindExport(sysappModule, OS_DYNLOAD_EXPORT_FUNC, "_SYSDirectlyReturnToCaller", (void**) &dyn__SYSDirectlyReturnToCaller);
+    OSDynLoad_FindExport(sysappModule, OS_DYNLOAD_EXPORT_FUNC, "_SYSDeserializeStandardArg", (void**) &dyn__SYSDeserializeStandardArg);
 }
 
 static void OnCabinetEnter()

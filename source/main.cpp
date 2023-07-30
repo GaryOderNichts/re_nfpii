@@ -89,7 +89,7 @@ const char* NfpiiGetTagEmulationPath(void)
     return re::nfpii::tagManager.GetTagEmulationPath().c_str();
 }
 
-NFCError NfpiiQueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg)
+NFCError NfpiiQueueNFCGetTagInfo(NFCGetTagInfoCallbackFn callback, void* arg)
 {
     LogHandler::Info("Module: Queued NFCGetTagInfo");
 

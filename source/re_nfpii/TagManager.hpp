@@ -8,7 +8,7 @@
 #include <coreinit/alarm.h>
 
 #include <nfpii.h>
-#include <nfc.h>
+#include <nfc/nfc.h>
 
 namespace re::nfpii {
 using nn::Result;
@@ -127,7 +127,7 @@ public: // custom
     Result LoadTag();
     void HandleTagUpdates();
 
-    NFCError QueueNFCGetTagInfo(NFCTagInfoCallback callback, void* arg);
+    NFCError QueueNFCGetTagInfo(NFCGetTagInfoCallbackFn callback, void* arg);
     void HandleNFCGetTagInfo();
 
 private:
@@ -167,7 +167,7 @@ private: // custom
     OSTime pendingTagRemoveTime;
 
     bool pendingTagInfo;
-    NFCTagInfoCallback nfcTagInfoCallback;
+    NFCGetTagInfoCallbackFn nfcTagInfoCallback;
     void* nfcTagInfoArg;
 
     bool inAmiiboSettings;

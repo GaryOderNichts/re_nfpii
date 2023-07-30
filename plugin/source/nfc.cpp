@@ -1,5 +1,5 @@
 #include <wups.h>
-#include <nfc.h>
+#include <nfc/nfc.h>
 #include <nfpii.h>
 #include <cstdio>
 #include <string>
@@ -11,7 +11,7 @@
     This function replacement passes the callback to the module, which calls it on the next nfc proc.
 */
 
-DECL_FUNCTION(NFCError, NFCGetTagInfo, uint32_t index, uint32_t timeout, NFCTagInfoCallback callback, void* arg)
+DECL_FUNCTION(NFCError, NFCGetTagInfo, uint32_t index, uint32_t timeout, NFCGetTagInfoCallbackFn callback, void* arg)
 {
     // DEBUG_FUNCTION_LINE("NFCGetTagInfo");
 
@@ -20,7 +20,7 @@ DECL_FUNCTION(NFCError, NFCGetTagInfo, uint32_t index, uint32_t timeout, NFCTagI
     }
 
     if (index != 0) {
-        return NFC_ERR_INVALID_COMMAND;
+        return -0x1385;
     }
 
     return NfpiiQueueNFCGetTagInfo(callback, arg);
