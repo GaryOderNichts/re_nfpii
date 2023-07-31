@@ -16,6 +16,10 @@ struct ConfigItemSelectAmiibo {
     std::string selectedAmiibo;
 };
 
+std::vector<std::string>& ConfigItemSelectAmiibo_GetFavorites(void);
+
+void ConfigItemSelectAmiibo_Init(std::string rootPath);
+
 bool ConfigItemSelectAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName, const char* amiiboFolder, const char* currentAmiibo, AmiiboSelectedCallback callback);
 
 #define ConfigItemSelectAmiibo_AddToCategoryHandled(__config__, __cat__, __configID__, __displayName__, __amiiboFolder__, __currentAmiibo__, __callback__)  \

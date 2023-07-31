@@ -12,6 +12,7 @@
 #include "debug/logger.h"
 #include "config/ConfigItemSelectAmiibo.hpp"
 #include "config/ConfigItemLog.hpp"
+#include "config/WUPSConfigItemButtonCombo.h"
 
 WUPS_PLUGIN_NAME("re_nfpii");
 WUPS_PLUGIN_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
@@ -19,7 +20,7 @@ WUPS_PLUGIN_VERSION("v0.2.2");
 WUPS_PLUGIN_AUTHOR("GaryOderNichts");
 WUPS_PLUGIN_LICENSE("GPLv2");
 
-//WUPS_USE_STORAGE("re_nfpii");
+WUPS_USE_STORAGE("re_nfpii");
 WUPS_USE_WUT_DEVOPTAB();
 
 // This is in .5 steps, i.e. 9 would be 4.5s
@@ -28,6 +29,8 @@ WUPS_USE_WUT_DEVOPTAB();
 #define TAG_EMULATION_PATH std::string("/vol/external01/wiiu/re_nfpii/")
 
 uint32_t currentRemoveAfterOption = 0;
+
+uint32_t currentQuickSelectCombination = 0;
 
 static void nfpiiLogHandler(NfpiiLogVerbosity verb, const char* message)
 {
@@ -43,6 +46,47 @@ INITIALIZE_PLUGIN()
 
     ConfigItemLog_Init();
     NfpiiSetLogHandler(nfpiiLogHandler);
+
+    // Read values from config
+    WUPSStorageError err = WUPS_OpenStorage();
+    if (err == WUPS_STORAGE_ERROR_SUCCESS) {
+        ConfigItemSelectAmiibo_Init(TAG_EMULATION_PATH);
+
+        int32_t emulationState = (int32_t) NfpiiGetEmulationState();
+        if ((err = WUPS_GetInt(nullptr, "emulationState", &emulationState)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            WUPS_StoreInt(nullptr, "emulationState", emulationState);
+        } else if (err == WUPS_STORAGE_ERROR_SUCCESS) {
+            NfpiiSetEmulationState((NfpiiEmulationState) emulationState);
+        }
+
+        if ((err = WUPS_GetInt(nullptr, "removeAfter", (int32_t*) &currentRemoveAfterOption)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            WUPS_StoreInt(nullptr, "removeAfter", currentRemoveAfterOption);
+        } else if (err == WUPS_STORAGE_ERROR_SUCCESS) {
+            NfpiiSetRemoveAfterSeconds(currentRemoveAfterOption / 2.0f);
+        }
+
+        char path[PATH_MAX];
+        strncpy(path, NfpiiGetTagEmulationPath(), PATH_MAX - 1);
+        if ((err = WUPS_GetString(nullptr, "currentPath", path, PATH_MAX)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            WUPS_StoreString(nullptr, "currentPath", path);
+        } else if (err == WUPS_STORAGE_ERROR_SUCCESS) {
+            // check that the stored path actually exists
+            struct stat sb;
+            if (stat(path, &sb) == 0 && (sb.st_mode & S_IFMT) == S_IFREG) {
+                NfpiiSetTagEmulationPath(path);
+            }
+        }
+
+        if ((err = WUPS_GetInt(nullptr, "quickSelectCombo", (int32_t*) &currentQuickSelectCombination)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            WUPS_StoreInt(nullptr, "quickSelectCombo", currentQuickSelectCombination);
+        }
+
+        if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE("Failed to close storage");
+        }
+    } else {
+        DEBUG_FUNCTION_LINE("Failed to open storage");
+    }
 }
 
 DEINITIALIZE_PLUGIN()
@@ -60,12 +104,14 @@ ON_APPLICATION_START()
 
 static void stateChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
 {
+    WUPS_StoreInt(nullptr, "emulationState", (int32_t) index);
     NfpiiSetEmulationState((NfpiiEmulationState) index);
 }
 
 static void removeAfterChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
 {
     currentRemoveAfterOption = index;
+    WUPS_StoreInt(nullptr, "removeAfter", (int32_t) currentRemoveAfterOption);
     NfpiiSetRemoveAfterSeconds(index / 2.0f);
 }
 
@@ -76,15 +122,22 @@ static void uuidRandomizationChangedCallback(ConfigItemMultipleValues* values, u
 
 static void amiiboSelectedCallback(ConfigItemSelectAmiibo* amiibos, const char* filePath)
 {
+    WUPS_StoreString(nullptr, "currentPath", filePath);
     NfpiiSetTagEmulationPath(filePath);
+}
+
+static void quickSelectComboCallback(ConfigItemButtonCombo* item, uint32_t newValue)
+{
+    currentQuickSelectCombination = newValue;
+    WUPS_StoreInt(nullptr, "quickSelectCombo", (int32_t) currentQuickSelectCombination);
 }
 
 WUPS_GET_CONFIG()
 {
-    // if (WUPS_OpenStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
-    //     DEBUG_FUNCTION_LINE("Failed to open storage");
-    //     return 0;
-    // }
+    if (WUPS_OpenStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE("Failed to open storage");
+        return 0;
+    }
 
     WUPSConfigHandle config;
     WUPSConfig_CreateHandled(&config, "re_nfpii");
@@ -126,6 +179,8 @@ WUPS_GET_CONFIG()
     std::string currentAmiiboPath = NfpiiGetTagEmulationPath();
     ConfigItemSelectAmiibo_AddToCategoryHandled(config, cat, "select_amiibo", "Select Amiibo", TAG_EMULATION_PATH.c_str(), currentAmiiboPath.c_str(), amiiboSelectedCallback);
 
+    WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_select_combination", "Quick Select Combo", currentQuickSelectCombination, quickSelectComboCallback);
+
     ConfigItemLog_AddToCategoryHandled(config, cat, "log", "Logs");
 
     return config;
@@ -133,7 +188,7 @@ WUPS_GET_CONFIG()
 
 WUPS_CONFIG_CLOSED()
 {
-    // if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
-    //     DEBUG_FUNCTION_LINE("Failed to close storage");
-    // }
+    if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE("Failed to close storage");
+    }
 }

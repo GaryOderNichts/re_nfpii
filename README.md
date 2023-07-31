@@ -23,7 +23,10 @@ The plugin handles the configurarion menu for the module and some additional thi
 > To use the figures again delete the `re_nfpii.wms` file from your `modules` folder.  
 
 ### Remove after
-- The remove after feature "removes" the virtual tag from the reader after the specified amount of time.
+The remove after feature "removes" the virtual tag from the reader after the specified amount of time.
+
+### Quick selecting favorites
+You can mark Amiibo as favorites using X. By setting a Quick Select button combination, you can quickly cycle through your favorites.
 
 ### Amiibo Settings
 The Wii U Plugin System does not work in applets, such as the Amiibo Settings, yet.  

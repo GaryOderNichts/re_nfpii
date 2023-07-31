@@ -1,8 +1,5 @@
 #include <wups.h>
 
-#include <vector>
-#include <string>
-
 enum LogType {
     LOG_TYPE_NORMAL,
     LOG_TYPE_WARN,

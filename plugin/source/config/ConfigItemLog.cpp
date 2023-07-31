@@ -1,6 +1,9 @@
 #include "ConfigItemLog.hpp"
 #include "utils/DrawUtils.hpp"
+#include "utils/input.h"
 
+#include <vector>
+#include <string>
 #include <cstdarg>
 #include <cstring>
 #include <algorithm>
@@ -18,7 +21,7 @@
 #define COLOR_BLACK              Color(0, 0, 0, 255)
 
 // max log entries which can be stored
-#define MAX_LOG_ENTRIES 1000
+#define MAX_LOG_ENTRIES 100
 
 // max log entries displayed on page
 #define MAX_ENTRIES_PER_PAGE 20
@@ -47,6 +50,7 @@ void ConfigItemLog_PrintType(LogType type, const char* text)
 
     if (logEntries.size() > MAX_LOG_ENTRIES) {
         logEntries.erase(logEntries.begin(), logEntries.end() - MAX_LOG_ENTRIES);
+        logEntries[0] = LogEntry(LOG_TYPE_NORMAL, "...");
     }
 
     OSUnlockMutex(&logMutex);
@@ -103,31 +107,11 @@ static void enterLogViewer(ConfigItemLog* item)
 
                     if (kpad.extensionType == WPAD_EXT_CORE || kpad.extensionType == WPAD_EXT_NUNCHUK ||
                         kpad.extensionType == WPAD_EXT_MPLUS || kpad.extensionType == WPAD_EXT_MPLUS_NUNCHUK) {
-                        if (kpad.trigger & WPAD_BUTTON_DOWN) {
-                            buttonsTriggered |= VPAD_BUTTON_DOWN;
-                        }
-                        if (kpad.trigger & WPAD_BUTTON_UP) {
-                            buttonsTriggered |= VPAD_BUTTON_UP;
-                        }
-                        if (kpad.trigger & WPAD_BUTTON_B) {
-                            buttonsTriggered |= VPAD_BUTTON_B;
-                        }
-                        if (kpad.trigger & WPAD_BUTTON_HOME) {
-                            buttonsTriggered |= VPAD_BUTTON_HOME;
-                        }
-                    } else {
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_DOWN) {
-                            buttonsTriggered |= VPAD_BUTTON_DOWN;
-                        }
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_UP) {
-                            buttonsTriggered |= VPAD_BUTTON_UP;
-                        }
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_B) {
-                            buttonsTriggered |= VPAD_BUTTON_B;
-                        }
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_HOME) {
-                            buttonsTriggered |= VPAD_BUTTON_HOME;
-                        }
+                        buttonsTriggered |= remapWiiMoteButtons(kpad.trigger);
+                    } else if (kpad.extensionType == WPAD_EXT_CLASSIC) {
+                        buttonsTriggered |= remapClassicButtons(kpad.classic.trigger);
+                    } else if (kpad.extensionType == WPAD_EXT_PRO_CONTROLLER) {
+                        buttonsTriggered |= remapProButtons(kpad.pro.trigger);
                     }
                 }
             }

@@ -1,5 +1,6 @@
 #include "ConfigItemSelectAmiibo.hpp"
 #include "utils/DrawUtils.hpp"
+#include "utils/input.h"
 #include "debug/logger.h"
 #include "config/ConfigItemLog.hpp"
 
@@ -8,12 +9,14 @@
 #include <cstring>
 #include <cstdarg>
 #include <algorithm>
+#include <sstream>
 
 #include <coreinit/title.h>
 #include <vpad/input.h>
 #include <padscore/kpad.h>
 
 #include "dir_icon.inc"
+#include "fav_icon.inc"
 
 #define COLOR_BACKGROUND         Color(238, 238, 238, 255)
 #define COLOR_TEXT               Color(51, 51, 51, 255)
@@ -42,10 +45,68 @@ enum ListEntryType {
 struct ListEntry {
     std::string name;
     ListEntryType type;
+    bool isFavorite;
 };
 
 static void ConfigItemSelectAmiibo_onDelete(void* context);
 static bool ConfigItemSelectAmiibo_callCallback(void* context);
+
+static std::vector<std::string> favorites;
+static bool favoritesUpdated = false;
+
+std::vector<std::string>& ConfigItemSelectAmiibo_GetFavorites(void)
+{
+    return favorites;
+}
+
+void ConfigItemSelectAmiibo_Init(std::string rootPath)
+{
+    int32_t favoritesSize;
+    if (WUPS_GetInt(nullptr, "favoritesSize", &favoritesSize) != WUPS_STORAGE_ERROR_SUCCESS) {
+        return;
+    }
+
+    char* favoritesString = new char[favoritesSize + 1];
+    if (WUPS_GetString(nullptr, "favorites", favoritesString, favoritesSize) != WUPS_STORAGE_ERROR_SUCCESS) {
+        delete[] favoritesString;
+        return;
+    }
+
+    favorites.clear();
+
+    std::stringstream stream(favoritesString);
+    std::string fav;
+    while (std::getline(stream, fav, ':')) {
+        std::string path = rootPath + fav;
+        struct stat sb;
+        if (stat(path.c_str(), &sb) == 0 && (sb.st_mode & S_IFMT) == S_IFREG) {
+            favorites.push_back(path);
+        }
+    }
+
+    delete[] favoritesString;
+}
+
+static void saveFavorites(ConfigItemSelectAmiibo* item)
+{
+    if (!favoritesUpdated || favorites.size() == 0) {
+        return;
+    }
+
+    // Store the favorites with ":" as the path separator
+    // Strip the rootPath (/vol/external01/wiiu/re_nfpii) prefix
+    // In the end everything is stored as one string like "amiibo1.bin:folder1/amiibo2.bin:folder2/amiibo3.bin"
+    std::string saveBuf;
+    for (const auto& fav : favorites) {
+        saveBuf += fav.substr(item->rootPath.size()) + ":";
+    }
+
+    // get rid of the last ':'
+    saveBuf.resize(saveBuf.size() - 1);
+
+    WUPS_StoreString(nullptr, "favorites", saveBuf.c_str());
+    WUPS_StoreInt(nullptr, "favoritesSize", saveBuf.size());
+}
 
 static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
 {
@@ -80,8 +141,15 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
             for (int i = 0; i < MAX_ENTRIES_PER_DIR && (ent = readdir(dir)) != NULL; i++) {
                 ListEntry entry;
                 entry.name = ent->d_name;
+                entry.isFavorite = false;
                 if (ent->d_type & DT_REG) {
                     entry.type = LIST_ENTRY_TYPE_FILE;
+
+                    // check if this entry is in favorites
+                    auto it = std::find(favorites.cbegin(), favorites.cend(), item->currentPath + entry.name);
+                    if (it != favorites.cend()) {
+                        entry.isFavorite = true;
+                    }
                 } else if (ent->d_type & DT_DIR) {
                     entry.type = LIST_ENTRY_TYPE_DIR;
                 } else {
@@ -183,37 +251,11 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
 
                     if (kpad.extensionType == WPAD_EXT_CORE || kpad.extensionType == WPAD_EXT_NUNCHUK ||
                         kpad.extensionType == WPAD_EXT_MPLUS || kpad.extensionType == WPAD_EXT_MPLUS_NUNCHUK) {
-                        if (kpad.trigger & WPAD_BUTTON_DOWN) {
-                            buttonsTriggered |= VPAD_BUTTON_DOWN;
-                        }
-                        if (kpad.trigger & WPAD_BUTTON_UP) {
-                            buttonsTriggered |= VPAD_BUTTON_UP;
-                        }
-                        if (kpad.trigger & WPAD_BUTTON_A) {
-                            buttonsTriggered |= VPAD_BUTTON_A;
-                        }
-                        if (kpad.trigger & WPAD_BUTTON_B) {
-                            buttonsTriggered |= VPAD_BUTTON_B;
-                        }
-                        if (kpad.trigger & WPAD_BUTTON_HOME) {
-                            buttonsTriggered |= VPAD_BUTTON_HOME;
-                        }
-                    } else {
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_DOWN) {
-                            buttonsTriggered |= VPAD_BUTTON_DOWN;
-                        }
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_UP) {
-                            buttonsTriggered |= VPAD_BUTTON_UP;
-                        }
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_A) {
-                            buttonsTriggered |= VPAD_BUTTON_A;
-                        }
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_B) {
-                            buttonsTriggered |= VPAD_BUTTON_B;
-                        }
-                        if (kpad.classic.trigger & WPAD_CLASSIC_BUTTON_HOME) {
-                            buttonsTriggered |= VPAD_BUTTON_HOME;
-                        }
+                        buttonsTriggered |= remapWiiMoteButtons(kpad.trigger);
+                    } else if (kpad.extensionType == WPAD_EXT_CLASSIC) {
+                        buttonsTriggered |= remapClassicButtons(kpad.classic.trigger);
+                    } else if (kpad.extensionType == WPAD_EXT_PRO_CONTROLLER) {
+                        buttonsTriggered |= remapProButtons(kpad.pro.trigger);
                     }
                 }
             }
@@ -262,6 +304,24 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
                 break;
             }
 
+            if (buttonsTriggered & VPAD_BUTTON_X) {
+                ListEntry& currentEntry = entries[currentIndex];
+                if (currentEntry.type == LIST_ENTRY_TYPE_FILE) {
+                    currentEntry.isFavorite = !currentEntry.isFavorite;
+
+                    // add or remove from favorites
+                    std::string absPath = item->currentPath + currentEntry.name;
+                    if (currentEntry.isFavorite) {
+                        favorites.push_back(absPath);
+                    } else {
+                        favorites.erase(std::find(favorites.cbegin(), favorites.cend(), absPath));
+                    }
+
+                    favoritesUpdated = true;
+                    redraw = true;
+                }
+            }
+
             if (buttonsTriggered & VPAD_BUTTON_HOME) {
                 // calling this manually is bleh but that way the config entry gets updated immediately after returning
                 ConfigItemSelectAmiibo_callCallback(item);
@@ -305,6 +365,13 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
                         } else {
                             DrawUtils::print(16 * 2, index + 6 + 16, "\u25cb");
                         }
+
+                        if (entry.isFavorite) {
+                            // draw favorite icon
+                            for (uint32_t i = 0; i < sizeof(fav_icon) / sizeof(Color); ++i) {
+                                DrawUtils::drawPixel(SCREEN_WIDTH - (16 * 3) + (i % 20), index + 4 + (i / 20), fav_icon[i]);
+                            }
+                        }
                     } else if (entry.type == LIST_ENTRY_TYPE_DIR) {
                         // draw directory icon
                         for (uint32_t i = 0; i < sizeof(dir_icon) / sizeof(Color); ++i) {
@@ -338,7 +405,7 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
                 DrawUtils::drawRectFilled(8, SCREEN_HEIGHT - 24 - 8 - 4, SCREEN_WIDTH - 8 * 2, 3, COLOR_BLACK);
                 DrawUtils::setFontSize(18);
                 DrawUtils::print(16, SCREEN_HEIGHT - 10, "\ue07d Navigate ");
-                DrawUtils::print(SCREEN_WIDTH - 16, SCREEN_HEIGHT - 10, "\ue000 Select", true);
+                DrawUtils::print(SCREEN_WIDTH - 16, SCREEN_HEIGHT - 10, "\ue002 Favorite / \ue000 Select", true);
 
                 // draw scroll indicators
                 DrawUtils::setFontSize(24);
@@ -364,6 +431,8 @@ static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
 static bool ConfigItemSelectAmiibo_callCallback(void* context)
 {
     ConfigItemSelectAmiibo* item = (ConfigItemSelectAmiibo*) context;
+
+    saveFavorites(item);
 
     if (item->callback && !item->selectedAmiibo.empty()) {
         item->callback(item, item->selectedAmiibo.c_str());
