@@ -58,7 +58,11 @@ static void ntagReadCallback(VPADChan chan, NTAGError error, NFCTagInfo *tagInfo
 
     if (error == 0) {
         char filePath[PATH_MAX];
-        snprintf(filePath, PATH_MAX, "%s/%02X-%02X-%02X-%02X-%02X-%02X-%02X.bin", item->dumpFolder.c_str(),
+        OSCalendarTime ct;
+
+        OSTicksToCalendarTime(OSGetTime(), &ct);
+        snprintf(filePath, PATH_MAX, "%s/%04d-%02d-%02d_%02d-%02d-%02d_%02X%02X%02X%02X%02X%02X%02X.bin", item->dumpFolder.c_str(),
+            ct.tm_year, ct.tm_mon + 1, ct.tm_mday, ct.tm_hour, ct.tm_min, ct.tm_sec,
             tagInfo->uid[0], tagInfo->uid[1], tagInfo->uid[2], tagInfo->uid[3], tagInfo->uid[4], tagInfo->uid[5], tagInfo->uid[6]);
 
         item->lastDumpPath = filePath;
@@ -251,11 +255,12 @@ static void enterDumpMenu(ConfigItemDumpAmiibo* item)
                 std::string timeoutText = std::to_string(TIMEOUT_SECONDS - OSTicksToSeconds(OSGetSystemTick() - readStart)) + " seconds remaining.";
                 DrawUtils::print(SCREEN_WIDTH / 2 - DrawUtils::getTextWidth(timeoutText.c_str()) / 2, yOff, timeoutText.c_str());
             } else if (item->state == DUMP_STATE_COMPLETED) {
-                int yOff = SCREEN_HEIGHT / 2 - (2 * 26) / 2;
+                int yOff = SCREEN_HEIGHT / 2 - (26 + 22) / 2;
                 const char* text = "Dump complete! Dump was saved to:";
                 DrawUtils::print(SCREEN_WIDTH / 2 - DrawUtils::getTextWidth(text) / 2, yOff, text);
                 yOff += 26;
 
+                DrawUtils::setFontSize(22);
                 std::string dumpPathText = item->lastDumpPath.substr(sizeof("/vol/external01/") - 1);
                 DrawUtils::print(SCREEN_WIDTH / 2 - DrawUtils::getTextWidth(dumpPathText.c_str()) / 2, yOff, dumpPathText.c_str());
             } else if (item->state == DUMP_STATE_ERROR) {
