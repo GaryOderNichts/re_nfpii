@@ -12,6 +12,7 @@
 #include "debug/logger.h"
 #include "config/ConfigItemSelectAmiibo.hpp"
 #include "config/ConfigItemLog.hpp"
+#include "config/ConfigItemDumpAmiibo.hpp"
 #include "config/WUPSConfigItemButtonCombo.h"
 
 WUPS_PLUGIN_NAME("re_nfpii");
@@ -180,6 +181,8 @@ WUPS_GET_CONFIG()
     ConfigItemSelectAmiibo_AddToCategoryHandled(config, cat, "select_amiibo", "Select Amiibo", TAG_EMULATION_PATH.c_str(), currentAmiiboPath.c_str(), amiiboSelectedCallback);
 
     WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_select_combination", "Quick Select Combo", currentQuickSelectCombination, quickSelectComboCallback);
+
+    ConfigItemDumpAmiibo_AddToCategoryHandled(config, cat, "dump_amiibo", "Dump Amiibo", (TAG_EMULATION_PATH + "dumps").c_str());
 
     ConfigItemLog_AddToCategoryHandled(config, cat, "log", "Logs");
 
