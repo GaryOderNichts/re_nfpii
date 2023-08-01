@@ -1,14 +1,15 @@
-FROM wiiuenv/devkitppc:20220806
+FROM ghcr.io/wiiu-env/devkitppc:20230621
 
-COPY --from=wiiuenv/wiiumodulesystem:20220904 /artifacts $DEVKITPRO
-COPY --from=wiiuenv/wiiupluginsystem:20220826 /artifacts $DEVKITPRO
+COPY --from=ghcr.io/wiiu-env/wiiumodulesystem:20230719 /artifacts $DEVKITPRO
+COPY --from=ghcr.io/wiiu-env/wiiupluginsystem:20230719 /artifacts $DEVKITPRO
+COPY --from=ghcr.io/wiiu-env/libnotifications:20230621 /artifacts $DEVKITPRO
 
 RUN \
 mkdir wut && \
 cd wut && \
 git init . && \
-git remote add origin https://github.com/devkitPro/wut.git && \
-git fetch --depth 1 origin d3d0485e7101bc0b07b82d326e6e94ee0e310434 && \
+git remote add origin https://github.com/GaryOderNichts/wut.git && \
+git fetch --depth 1 origin 09b3556e3dcde3516015ee964ac7fa51586190cb && \
 git checkout FETCH_HEAD
 WORKDIR /wut
 RUN make -j$(nproc)

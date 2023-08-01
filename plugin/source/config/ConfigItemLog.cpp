@@ -79,109 +79,107 @@ static void enterLogViewer(ConfigItemLog* item)
         return;
     }
 
+    uint32_t start = 0;
+    uint32_t end = std::min(logEntries.size(), (uint32_t) MAX_ENTRIES_PER_PAGE);
+
+    bool redraw = true;
+
+    VPADStatus vpad{};
+    VPADReadError vpadError;
+    KPADStatus kpad{};
+    KPADError kpadError;
+
     while (true) {
-        uint32_t start = 0;
-        uint32_t end = std::min(logEntries.size(), (uint32_t) MAX_ENTRIES_PER_PAGE);
+        uint32_t buttonsTriggered = 0;
 
-        bool redraw = true;
+        VPADRead(VPAD_CHAN_0, &vpad, 1, &vpadError);
+        if (vpadError == VPAD_READ_SUCCESS) {
+            buttonsTriggered = vpad.trigger;
+        }
 
-        VPADStatus vpad{};
-        VPADReadError vpadError;
-        KPADStatus kpad{};
-        KPADError kpadError;
-
-        while (true) {
-            uint32_t buttonsTriggered = 0;
-
-            VPADRead(VPAD_CHAN_0, &vpad, 1, &vpadError);
-            if (vpadError == VPAD_READ_SUCCESS) {
-                buttonsTriggered = vpad.trigger;
-            }
-
-            // read kpads and remap the buttons we need
-            for (int i = 0; i < 4; i++) {
-                if (KPADReadEx((KPADChan) i, &kpad, 1, &kpadError) > 0) {
-                    if (kpadError != KPAD_ERROR_OK) {
-                        continue;
-                    }
-
-                    if (kpad.extensionType == WPAD_EXT_CORE || kpad.extensionType == WPAD_EXT_NUNCHUK ||
-                        kpad.extensionType == WPAD_EXT_MPLUS || kpad.extensionType == WPAD_EXT_MPLUS_NUNCHUK) {
-                        buttonsTriggered |= remapWiiMoteButtons(kpad.trigger);
-                    } else if (kpad.extensionType == WPAD_EXT_CLASSIC) {
-                        buttonsTriggered |= remapClassicButtons(kpad.classic.trigger);
-                    } else if (kpad.extensionType == WPAD_EXT_PRO_CONTROLLER) {
-                        buttonsTriggered |= remapProButtons(kpad.pro.trigger);
-                    }
-                }
-            }
-
-            if (buttonsTriggered & VPAD_BUTTON_DOWN) {
-                end = std::min(end + MAX_ENTRIES_PER_PAGE, logEntries.size());
-                start = std::max((int) end - MAX_ENTRIES_PER_PAGE, 0);
-                redraw = true;
-            }
-
-            if (buttonsTriggered & VPAD_BUTTON_UP) {
-                start = std::max(0, (int) start - MAX_ENTRIES_PER_PAGE);
-                end = std::min(start + MAX_ENTRIES_PER_PAGE, logEntries.size());
-                redraw = true;
-            }
-
-            if (buttonsTriggered & (VPAD_BUTTON_B | VPAD_BUTTON_HOME)) {
-                return;
-            }
-
-            if (redraw) {
-                DrawUtils::beginDraw();
-                DrawUtils::clear(COLOR_BACKGROUND);
-
-                // draw entries
-                uint32_t index = 8 + 24 + 8 + 4;
-                for (uint32_t i = start; i < end; i++) {
-                    LogEntry& entry = logEntries[i];
-
-                    if (entry.type == LOG_TYPE_WARN) {
-                        DrawUtils::setFontColor(COLOR_TEXT_WARN);
-                    } else if (entry.type == LOG_TYPE_ERROR) {
-                        DrawUtils::setFontColor(COLOR_TEXT_ERROR);
-                    } else {
-                        DrawUtils::setFontColor(COLOR_TEXT2);
-                    }
-
-                    DrawUtils::setFontSize(16);
-                    DrawUtils::print(16, index + 16, entry.text.c_str());
-
-                    index += 16 + 4;
+        // read kpads and remap the buttons we need
+        for (int i = 0; i < 4; i++) {
+            if (KPADReadEx((KPADChan) i, &kpad, 1, &kpadError) > 0) {
+                if (kpadError != KPAD_ERROR_OK) {
+                    continue;
                 }
 
-                DrawUtils::setFontColor(COLOR_TEXT);
-
-                // draw top bar
-                DrawUtils::setFontSize(24);
-                DrawUtils::print(16, 6 + 24, "re_nfpii - Log viewer");
-                DrawUtils::setFontSize(18);
-                DrawUtils::print(SCREEN_WIDTH - 16, 8 + 24, getLogStats(item).c_str(), true);
-                DrawUtils::drawRectFilled(8, 8 + 24 + 4, SCREEN_WIDTH - 8 * 2, 3, COLOR_BLACK);
-
-                // draw bottom bar
-                DrawUtils::drawRectFilled(8, SCREEN_HEIGHT - 24 - 8 - 4, SCREEN_WIDTH - 8 * 2, 3, COLOR_BLACK);
-                DrawUtils::setFontSize(18);
-                DrawUtils::print(16, SCREEN_HEIGHT - 10, "\ue07d Scroll ");
-                DrawUtils::print(SCREEN_WIDTH - 16, SCREEN_HEIGHT - 10, "\ue001 Back", true);
-
-                // draw scroll indicators
-                DrawUtils::setFontSize(24);
-                if (end < logEntries.size()) {
-                    DrawUtils::print(SCREEN_WIDTH / 2 + 12, SCREEN_HEIGHT - 32, "\ufe3e", true);
+                if (kpad.extensionType == WPAD_EXT_CORE || kpad.extensionType == WPAD_EXT_NUNCHUK ||
+                    kpad.extensionType == WPAD_EXT_MPLUS || kpad.extensionType == WPAD_EXT_MPLUS_NUNCHUK) {
+                    buttonsTriggered |= remapWiiMoteButtons(kpad.trigger);
+                } else if (kpad.extensionType == WPAD_EXT_CLASSIC) {
+                    buttonsTriggered |= remapClassicButtons(kpad.classic.trigger);
+                } else if (kpad.extensionType == WPAD_EXT_PRO_CONTROLLER) {
+                    buttonsTriggered |= remapProButtons(kpad.pro.trigger);
                 }
-                if (start > 0) {
-                    DrawUtils::print(SCREEN_WIDTH / 2 + 12, 32 + 20, "\ufe3d", true);
-                }
-
-                DrawUtils::endDraw();
-                redraw = false;
             }
+        }
+
+        if (buttonsTriggered & VPAD_BUTTON_DOWN) {
+            end = std::min(end + MAX_ENTRIES_PER_PAGE, logEntries.size());
+            start = std::max((int) end - MAX_ENTRIES_PER_PAGE, 0);
+            redraw = true;
+        }
+
+        if (buttonsTriggered & VPAD_BUTTON_UP) {
+            start = std::max(0, (int) start - MAX_ENTRIES_PER_PAGE);
+            end = std::min(start + MAX_ENTRIES_PER_PAGE, logEntries.size());
+            redraw = true;
+        }
+
+        if (buttonsTriggered & (VPAD_BUTTON_B | VPAD_BUTTON_HOME)) {
+            return;
+        }
+
+        if (redraw) {
+            DrawUtils::beginDraw();
+            DrawUtils::clear(COLOR_BACKGROUND);
+
+            // draw entries
+            uint32_t index = 8 + 24 + 8 + 4;
+            for (uint32_t i = start; i < end; i++) {
+                LogEntry& entry = logEntries[i];
+
+                if (entry.type == LOG_TYPE_WARN) {
+                    DrawUtils::setFontColor(COLOR_TEXT_WARN);
+                } else if (entry.type == LOG_TYPE_ERROR) {
+                    DrawUtils::setFontColor(COLOR_TEXT_ERROR);
+                } else {
+                    DrawUtils::setFontColor(COLOR_TEXT2);
+                }
+
+                DrawUtils::setFontSize(16);
+                DrawUtils::print(16, index + 16, entry.text.c_str());
+
+                index += 16 + 4;
+            }
+
+            DrawUtils::setFontColor(COLOR_TEXT);
+
+            // draw top bar
+            DrawUtils::setFontSize(24);
+            DrawUtils::print(16, 6 + 24, "re_nfpii - Log viewer");
+            DrawUtils::setFontSize(18);
+            DrawUtils::print(SCREEN_WIDTH - 16, 8 + 24, getLogStats(item).c_str(), true);
+            DrawUtils::drawRectFilled(8, 8 + 24 + 4, SCREEN_WIDTH - 8 * 2, 3, COLOR_BLACK);
+
+            // draw bottom bar
+            DrawUtils::drawRectFilled(8, SCREEN_HEIGHT - 24 - 8 - 4, SCREEN_WIDTH - 8 * 2, 3, COLOR_BLACK);
+            DrawUtils::setFontSize(18);
+            DrawUtils::print(16, SCREEN_HEIGHT - 10, "\ue07d Scroll ");
+            DrawUtils::print(SCREEN_WIDTH - 16, SCREEN_HEIGHT - 10, "\ue001 Back", true);
+
+            // draw scroll indicators
+            DrawUtils::setFontSize(24);
+            if (end < logEntries.size()) {
+                DrawUtils::print(SCREEN_WIDTH / 2 + 12, SCREEN_HEIGHT - 32, "\ufe3e", true);
+            }
+            if (start > 0) {
+                DrawUtils::print(SCREEN_WIDTH / 2 + 12, 32 + 20, "\ufe3d", true);
+            }
+
+            DrawUtils::endDraw();
+            redraw = false;
         }
     }
 }

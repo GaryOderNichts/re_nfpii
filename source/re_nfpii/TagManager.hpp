@@ -86,7 +86,7 @@ public: // custom
     void SetEmulationState(NfpiiEmulationState state)
     {
         emulationState = state;
-        pendingRemove = state == EMULATION_OFF;
+        pendingRemove = state == NFPII_EMULATION_OFF;
     }
 
     NfpiiEmulationState GetEmulationState() const

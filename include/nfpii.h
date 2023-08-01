@@ -6,24 +6,31 @@
 extern "C" {
 #endif
 
+#define NFPII_VERSION_MAJOR(v) ((v >> 16) & 0xff)
+#define NFPII_VERSION_MINOR(v) ((v >> 8) & 0xff)
+#define NFPII_VERSION_PATCH(v) (v & 0xff)
+#define NFPII_VERSION(major, minor, patch) ((major << 16) | (minor << 8) | patch)
+
 typedef enum NfpiiEmulationState {
-    EMULATION_OFF,
-    EMULATION_ON
+    NFPII_EMULATION_OFF,
+    NFPII_EMULATION_ON
 } EmulationState;
 
 typedef enum NfpiiUUIDRandomizationState {
-    RANDOMIZATION_OFF,
-    RANDOMIZATION_ONCE,
-    RANDOMIZATION_EVERY_READ
+    NFPII_RANDOMIZATION_OFF,
+    NFPII_RANDOMIZATION_ONCE,
+    NFPII_RANDOMIZATION_EVERY_READ
 } UUIDRandomizationState;
 
 typedef enum NfpiiLogVerbosity {
-    LOG_VERBOSITY_INFO,
-    LOG_VERBOSITY_WARN,
-    LOG_VERBOSITY_ERROR,
+    NFPII_LOG_VERBOSITY_INFO,
+    NFPII_LOG_VERBOSITY_WARN,
+    NFPII_LOG_VERBOSITY_ERROR,
 } NfpiiLogVerbosity;
 
 typedef void (*NfpiiLogHandler)(NfpiiLogVerbosity verb, const char* message);
+
+uint32_t NfpiiGetVersion(void);
 
 bool NfpiiIsInitialized(void);
 

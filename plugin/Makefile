@@ -37,7 +37,10 @@ INCLUDES	:=	include \
 CFLAGS	:=	-Wall -O2 -ffunction-sections \
 			$(MACHDEP)
 
-CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -D__WUPS__ -DLOGGING
+CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -D__WUPS__ \
+		-DVERSION_MAJOR=$(VERSION_MAJOR) \
+		-DVERSION_MINOR=$(VERSION_MINOR) \
+		-DVERSION_PATCH=$(VERSION_PATCH)
 
 CFLAGS	+=	-Wno-address-of-packed-member
 

@@ -30,7 +30,7 @@ static void cycleQuickSelect()
 
     std::string path = ConfigItemSelectAmiibo_GetFavorites()[currentQuickSelectIndex];
     NfpiiSetTagEmulationPath(path.c_str());
-    NfpiiSetEmulationState(EMULATION_ON);
+    NfpiiSetEmulationState(NFPII_EMULATION_ON);
 
     std::string name = path.substr(path.find_last_of("/") + 1);
     std::string notifText = "re_nfpii: Selected \"" + name + "\"";

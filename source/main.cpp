@@ -10,10 +10,13 @@
 
 #include "utils/LogHandler.hpp"
 
+#define STR_VALUE(arg) #arg
+#define VERSION_STRING(x, y, z) "v" STR_VALUE(x) "." STR_VALUE(y) "." STR_VALUE(z)
+
 WUMS_MODULE_EXPORT_NAME("nn_nfp");
 WUMS_MODULE_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
 WUMS_MODULE_AUTHOR("GaryOderNichts");
-WUMS_MODULE_VERSION("v0.2.2");
+WUMS_MODULE_VERSION(VERSION_STRING(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH));
 WUMS_MODULE_LICENSE("GPLv2");
 
 WUMS_INITIALIZE(myargs)
@@ -38,6 +41,11 @@ WUMS_APPLICATION_ENDS()
 {
     // Call finalize in case the application doesn't
     re::nfpii::tagManager.Finalize();
+}
+
+uint32_t NfpiiGetVersion(void)
+{
+    return NFPII_VERSION(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 }
 
 // custom exports for the configuration plugin

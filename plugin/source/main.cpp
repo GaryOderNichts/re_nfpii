@@ -15,9 +15,12 @@
 #include "config/ConfigItemDumpAmiibo.hpp"
 #include "config/WUPSConfigItemButtonCombo.h"
 
+#define STR_VALUE(arg) #arg
+#define VERSION_STRING(x, y, z) "v" STR_VALUE(x) "." STR_VALUE(y) "." STR_VALUE(z)
+
 WUPS_PLUGIN_NAME("re_nfpii");
 WUPS_PLUGIN_DESCRIPTION("A nn_nfp reimplementation with support for Amiibo emulation");
-WUPS_PLUGIN_VERSION("v0.2.2");
+WUPS_PLUGIN_VERSION(VERSION_STRING(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH));
 WUPS_PLUGIN_AUTHOR("GaryOderNichts");
 WUPS_PLUGIN_LICENSE("GPLv2");
 
@@ -147,9 +150,9 @@ WUPS_GET_CONFIG()
     WUPSConfig_AddCategoryByNameHandled(config, "Settings", &cat);
 
     ConfigItemMultipleValuesPair emulationStateValues[2];
-    emulationStateValues[0].value = EMULATION_OFF;
+    emulationStateValues[0].value = NFPII_EMULATION_OFF;
     emulationStateValues[0].valueName = (char*) "Emulation Disabled";
-    emulationStateValues[1].value = EMULATION_ON;
+    emulationStateValues[1].value = NFPII_EMULATION_ON;
     emulationStateValues[1].valueName = (char*) "Emulation Enabled";
     WUPSConfigItemMultipleValues_AddToCategoryHandled(config, cat, "state", "Set State", NfpiiGetEmulationState(), emulationStateValues, 2, stateChangedCallback);
 

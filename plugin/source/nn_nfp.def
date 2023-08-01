@@ -2,6 +2,7 @@
 
 :TEXT
 // custom added exports
+NfpiiGetVersion
 NfpiiIsInitialized
 NfpiiSetEmulationState
 NfpiiGetEmulationState

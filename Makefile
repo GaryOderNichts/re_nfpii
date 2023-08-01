@@ -12,6 +12,14 @@ include $(DEVKITPRO)/wums/share/wums_rules
 
 WUMS_ROOT := $(DEVKITPRO)/wums
 WUT_ROOT := $(DEVKITPRO)/wut
+
+#-------------------------------------------------------------------------------
+# Version used for the module and plugin
+#-------------------------------------------------------------------------------
+export VERSION_MAJOR	:=	0
+export VERSION_MINOR	:=	3
+export VERSION_PATCH	:=	0
+
 #-------------------------------------------------------------------------------
 # TARGET is the name of the output
 # BUILD is the directory where object files & intermediate files will be placed
@@ -36,7 +44,10 @@ INCLUDES	:=	include \
 CFLAGS	:=	-Wall -Os -ffunction-sections \
 			$(MACHDEP)
 
-CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -DLOGGING
+CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ \
+		-DVERSION_MAJOR=$(VERSION_MAJOR) \
+		-DVERSION_MINOR=$(VERSION_MINOR) \
+		-DVERSION_PATCH=$(VERSION_PATCH)
 
 CFLAGS	+=	-Wno-address-of-packed-member
 

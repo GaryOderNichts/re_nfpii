@@ -12,7 +12,7 @@ The module completely replaces all exports of nn_nfp and adds additional exports
 The plugin handles the configurarion menu for the module and some additional things which can't be added to the module.
 
 ## Usage
-- Download the [latest release](https://github.com/GaryOderNichts/re_nfpii/releases) or the artifacts of latest nightly build from [here](https://github.com/GaryOderNichts/re_nfpii/actions) (Requires a GitHub account).
+- Download the [latest release](https://github.com/GaryOderNichts/re_nfpii/releases) or the artifacts of latest nightly build from [here](https://nightly.link/GaryOderNichts/re_nfpii/workflows/build/main/re_nfpii.zip).
 - Copy the contents of the downloaded *`.zip`* file to your target environment.
 - Copy your (encrypted!) amiibo dumps to `wiiu/re_nfpii`. Subfolders are also supported and can be browsed from the configuration menu.  
   Folders in the `re_nfpii` folder starting with a [Title ID](https://wiiubrew.org/wiki/Title_database) (without the `-`) will be automatically opened for that game (for example  a folder named `0005000010144F00 - Smash Bros` would automatically open for Smash Bros USA).
@@ -27,6 +27,9 @@ The remove after feature "removes" the virtual tag from the reader after the spe
 
 ### Quick selecting favorites
 You can mark Amiibo as favorites using X. By setting a Quick Select button combination, you can quickly cycle through your favorites.
+
+### Dumping Amiibo
+re_nfpii comes with an Amiibo dumper in the configuration menu. This allows you to dump your tags directly to the `wiiu/re_nfpii/dumps` folder.
 
 ### Amiibo Settings
 The Wii U Plugin System does not work in applets, such as the Amiibo Settings, yet.  
