@@ -1,5 +1,6 @@
 #include <wups.h>
 #include <wups/config/WUPSConfigItemMultipleValues.h>
+#include <wups/config/WUPSConfigItemBoolean.h>
 #include <string>
 #include <map>
 
@@ -36,6 +37,8 @@ uint32_t currentRemoveAfterOption = 0;
 
 uint32_t currentQuickSelectCombination = 0;
 
+bool favoritesPerTitle = false;
+
 static void nfpiiLogHandler(NfpiiLogVerbosity verb, const char* message)
 {
     ConfigItemLog_PrintType((LogType) verb, message);
@@ -54,8 +57,6 @@ INITIALIZE_PLUGIN()
     // Read values from config
     WUPSStorageError err = WUPS_OpenStorage();
     if (err == WUPS_STORAGE_ERROR_SUCCESS) {
-        ConfigItemSelectAmiibo_Init(TAG_EMULATION_PATH);
-
         int32_t emulationState = (int32_t) NfpiiGetEmulationState();
         if ((err = WUPS_GetInt(nullptr, "emulationState", &emulationState)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
             WUPS_StoreInt(nullptr, "emulationState", emulationState);
@@ -81,6 +82,11 @@ INITIALIZE_PLUGIN()
             }
         }
 
+        if ((err = WUPS_GetBool(nullptr, "favoritesPerTitle", &favoritesPerTitle)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            WUPS_StoreBool(nullptr, "favoritesPerTitle", favoritesPerTitle);
+        }
+        ConfigItemSelectAmiibo_Init(TAG_EMULATION_PATH, favoritesPerTitle);
+
         if ((err = WUPS_GetInt(nullptr, "quickSelectCombo", (int32_t*) &currentQuickSelectCombination)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
             WUPS_StoreInt(nullptr, "quickSelectCombo", currentQuickSelectCombination);
         }
@@ -103,6 +109,17 @@ ON_APPLICATION_START()
     if (!WHBLogModuleInit()) {
         WHBLogCafeInit();
         WHBLogUdpInit();
+    }
+
+    // Make sure favorites are refreshed for the new title
+    if (WUPS_OpenStorage() == WUPS_STORAGE_ERROR_SUCCESS) {
+        ConfigItemSelectAmiibo_Init(TAG_EMULATION_PATH, favoritesPerTitle);
+
+        if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE("Failed to close storage");
+        } 
+    } else {
+        DEBUG_FUNCTION_LINE("Failed to open storage");
     }
 }
 
@@ -128,6 +145,15 @@ static void amiiboSelectedCallback(ConfigItemSelectAmiibo* amiibos, const char* 
 {
     WUPS_StoreString(nullptr, "currentPath", filePath);
     NfpiiSetTagEmulationPath(filePath);
+}
+
+static void favoritesPerTitleCallback(ConfigItemBoolean* item, bool enable)
+{
+    favoritesPerTitle = enable;
+    WUPS_StoreBool(nullptr, "favoritesPerTitle", favoritesPerTitle);
+
+    // refresh favorites
+    ConfigItemSelectAmiibo_Init(TAG_EMULATION_PATH, favoritesPerTitle);
 }
 
 static void quickSelectComboCallback(ConfigItemButtonCombo* item, uint32_t newValue)
@@ -182,6 +208,8 @@ WUPS_GET_CONFIG()
 
     std::string currentAmiiboPath = NfpiiGetTagEmulationPath();
     ConfigItemSelectAmiibo_AddToCategoryHandled(config, cat, "select_amiibo", "Select Amiibo", TAG_EMULATION_PATH.c_str(), currentAmiiboPath.c_str(), amiiboSelectedCallback);
+
+    WUPSConfigItemBoolean_AddToCategoryHandled(config, cat, "favorites_per_title", "Per-Title Favorites", favoritesPerTitle, favoritesPerTitleCallback);
 
     WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_select_combination", "Quick Select Combo", currentQuickSelectCombination, quickSelectComboCallback);
 

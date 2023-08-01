@@ -53,26 +53,37 @@ static bool ConfigItemSelectAmiibo_callCallback(void* context);
 
 static std::vector<std::string> favorites;
 static bool favoritesUpdated = false;
+static bool favoritesPerTitle = false;
 
 std::vector<std::string>& ConfigItemSelectAmiibo_GetFavorites(void)
 {
     return favorites;
 }
 
-void ConfigItemSelectAmiibo_Init(std::string rootPath)
+void ConfigItemSelectAmiibo_Init(std::string rootPath, bool favoritesPerTitle)
 {
+    favorites.clear();
+    favoritesUpdated = false;
+
+    ::favoritesPerTitle = favoritesPerTitle;
+    std::string favoritesKey = "favorites";
+    if (favoritesPerTitle) {
+        uint64_t titleId = OSGetTitleID();
+        char titleIdString[17];
+        snprintf(titleIdString, sizeof(titleIdString), "%016llx", titleId);
+        favoritesKey += titleIdString;
+    }
+
     int32_t favoritesSize;
-    if (WUPS_GetInt(nullptr, "favoritesSize", &favoritesSize) != WUPS_STORAGE_ERROR_SUCCESS) {
+    if (WUPS_GetInt(nullptr, (favoritesKey + "Size").c_str(), &favoritesSize) != WUPS_STORAGE_ERROR_SUCCESS) {
         return;
     }
 
     char* favoritesString = new char[favoritesSize + 1];
-    if (WUPS_GetString(nullptr, "favorites", favoritesString, favoritesSize) != WUPS_STORAGE_ERROR_SUCCESS) {
+    if (WUPS_GetString(nullptr, favoritesKey.c_str(), favoritesString, favoritesSize + 1) != WUPS_STORAGE_ERROR_SUCCESS) {
         delete[] favoritesString;
         return;
     }
-
-    favorites.clear();
 
     std::stringstream stream(favoritesString);
     std::string fav;
@@ -104,8 +115,18 @@ static void saveFavorites(ConfigItemSelectAmiibo* item)
     // get rid of the last ':'
     saveBuf.resize(saveBuf.size() - 1);
 
-    WUPS_StoreString(nullptr, "favorites", saveBuf.c_str());
-    WUPS_StoreInt(nullptr, "favoritesSize", saveBuf.size());
+    std::string favoritesKey = "favorites";
+    if (favoritesPerTitle) {
+        uint64_t titleId = OSGetTitleID();
+        char titleIdString[17];
+        snprintf(titleIdString, sizeof(titleIdString), "%016llx", titleId);
+        favoritesKey += titleIdString;
+    }
+
+    WUPS_StoreString(nullptr, favoritesKey.c_str(), saveBuf.c_str());
+    WUPS_StoreInt(nullptr, (favoritesKey + "Size").c_str(), saveBuf.size());
+
+    favoritesUpdated = false;
 }
 
 static void enterSelectionMenu(ConfigItemSelectAmiibo* item)
