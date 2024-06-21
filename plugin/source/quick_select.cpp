@@ -13,6 +13,8 @@ extern "C" uint32_t VPADGetButtonProcMode(VPADChan chan);
 extern uint32_t currentQuickSelectCombination;
 static uint32_t currentQuickSelectIndex = 0;
 
+extern uint32_t currentQuickRemoveCombination;
+
 static uint32_t sWPADLastButtonHold[4];
 static uint32_t sWasHoldForXFrame[4];
 static uint32_t sWasHoldForXFrameGamePad;
@@ -69,16 +71,29 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus* buffer, uint32_t buf
             end = result;
         }
         bool found = false;
+        bool foundTe = false;
 
         for (uint32_t i = 0; i < end; i++) {
             if (currentQuickSelectCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentQuickSelectCombination) == currentQuickSelectCombination)) {
                 found = true;
+                break;
+            } else if (currentQuickRemoveCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentQuickRemoveCombination) == currentQuickRemoveCombination)) {
+                foundTe = true;
                 break;
             }
         }
         if (found) {
             if (sWasHoldForXFrameGamePad == 0) {
                 cycleQuickSelect();
+            }
+            sWasHoldForXFrameGamePad++;
+        } else {
+            sWasHoldForXFrameGamePad = 0;
+        }
+
+        if (foundTe) {
+            if (sWasHoldForXFrameGamePad == 0) {
+                toggleEmulation();
             }
             sWasHoldForXFrameGamePad++;
         } else {
@@ -112,6 +127,13 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController* data)
                 if ((currentQuickSelectCombination != 0 && (curButtonHold & currentQuickSelectCombination) == currentQuickSelectCombination)) {
                     if (sWasHoldForXFrame[chan] == 0) {
                         cycleQuickSelect();
+                    }
+                    sWasHoldForXFrame[chan]++;
+                } else {
+                    sWasHoldForXFrame[chan] = 0;
+                } else if ((currentQuickRemoveCombination != 0 && (curButtonHold & currentQuickRemoveCombination) == currentQuickRemoveCombination)) {
+                    if (sWasHoldForXFrame[chan] == 0) {
+                        toggleEmulation();
                     }
                     sWasHoldForXFrame[chan]++;
                 } else {
