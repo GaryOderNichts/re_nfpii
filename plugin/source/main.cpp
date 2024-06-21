@@ -166,7 +166,7 @@ static void quickSelectComboCallback(ConfigItemButtonCombo* item, uint32_t newVa
 static void quickRemoveComboCallback(ConfigItemButtonCombo* item, uint32_t newValue)
 {
     currentQuickRemoveCombination = newValue;
-    WUPS_StoreInt(nullptr, "quickRemoveCombo", (int32_t) currentQuickRemoteCombination);
+    WUPS_StoreInt(nullptr, "quickRemoveCombo", (int32_t) currentQuickRemoveCombination);
 }
 
 WUPS_GET_CONFIG()
