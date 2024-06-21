@@ -162,6 +162,12 @@ static void quickSelectComboCallback(ConfigItemButtonCombo* item, uint32_t newVa
     WUPS_StoreInt(nullptr, "quickSelectCombo", (int32_t) currentQuickSelectCombination);
 }
 
+static void quickRemoveComboCallback(ConfigItemButtonCombo* item, uint32_t newValue)
+{
+    currentQuickRemoveCombination = newValue;
+    WUPS_StoreInt(nullptr, "quickRemoveCombo", (int32_t) currentQuickRemoteCombination);
+}
+
 WUPS_GET_CONFIG()
 {
     if (WUPS_OpenStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -212,6 +218,8 @@ WUPS_GET_CONFIG()
     WUPSConfigItemBoolean_AddToCategoryHandled(config, cat, "favorites_per_title", "Per-Title Favorites", favoritesPerTitle, favoritesPerTitleCallback);
 
     WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_select_combination", "Quick Select Combo", currentQuickSelectCombination, quickSelectComboCallback);
+
+    WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_remove_combination", "Quick Remove Combo", currentQuickRemoveCombination, quickRemoveComboCallback);
 
     ConfigItemDumpAmiibo_AddToCategoryHandled(config, cat, "dump_amiibo", "Dump Amiibo", (TAG_EMULATION_PATH + "dumps").c_str());
 
