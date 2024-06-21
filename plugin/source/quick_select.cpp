@@ -40,6 +40,23 @@ static void cycleQuickSelect()
     }
 }
 
+
+static void toggleEmulation()
+{
+    NfpiiEmulationState state = NfpiiGetEmulationState();
+    if (state == NFPII_EMULATION_ON) {
+        NfpiiSetEmulationState(NFPII_EMULATION_OFF);
+        std::string notifText = "re_nfpii: Disabled emulation";
+    } else {
+        NfpiiSetEmulationState(NFPII_EMULATION_ON);
+        std::string notifText = "re_nfpii: Enabled emulation";
+    };
+
+    if (NotificationModule_InitLibrary() == NOTIFICATION_MODULE_RESULT_SUCCESS) {
+        NotificationModule_AddInfoNotification(notifText.c_str());
+    }
+}
+
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus* buffer, uint32_t buffer_size, VPADReadError* error)
 {
     VPADReadError real_error;
