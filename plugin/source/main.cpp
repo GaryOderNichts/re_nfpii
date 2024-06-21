@@ -36,6 +36,7 @@ WUPS_USE_WUT_DEVOPTAB();
 uint32_t currentRemoveAfterOption = 0;
 
 uint32_t currentQuickSelectCombination = 0;
+uint32_t currentQuickRemoveCombination = 0;
 
 bool favoritesPerTitle = false;
 
