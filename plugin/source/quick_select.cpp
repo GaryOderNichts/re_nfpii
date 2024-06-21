@@ -88,11 +88,7 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus* buffer, uint32_t buf
                 cycleQuickSelect();
             }
             sWasHoldForXFrameGamePad++;
-        } else {
-            sWasHoldForXFrameGamePad = 0;
-        }
-
-        if (foundTe) {
+        } else if (foundTe) {
             if (sWasHoldForXFrameGamePad == 0) {
                 toggleEmulation();
             }
