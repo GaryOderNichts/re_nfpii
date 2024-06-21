@@ -46,6 +46,7 @@ static void cycleQuickSelect()
 static void toggleEmulation()
 {
     NfpiiEmulationState state = NfpiiGetEmulationState();
+    std::string notifText;
     if (state == NFPII_EMULATION_ON) {
         NfpiiSetEmulationState(NFPII_EMULATION_OFF);
         std::string notifText = "re_nfpii: Disabled emulation";
@@ -129,8 +130,6 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController* data)
                         cycleQuickSelect();
                     }
                     sWasHoldForXFrame[chan]++;
-                } else {
-                    sWasHoldForXFrame[chan] = 0;
                 } else if ((currentQuickRemoveCombination != 0 && (curButtonHold & currentQuickRemoveCombination) == currentQuickRemoveCombination)) {
                     if (sWasHoldForXFrame[chan] == 0) {
                         toggleEmulation();
