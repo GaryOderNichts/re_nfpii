@@ -49,10 +49,10 @@ static void toggleEmulation()
     std::string notifText;
     if (state == NFPII_EMULATION_ON) {
         NfpiiSetEmulationState(NFPII_EMULATION_OFF);
-        std::string notifText = "re_nfpii: Disabled emulation";
+        notifText = "re_nfpii: Disabled emulation";
     } else {
         NfpiiSetEmulationState(NFPII_EMULATION_ON);
-        std::string notifText = "re_nfpii: Enabled emulation";
+        notifText = "re_nfpii: Enabled emulation";
     };
 
     if (NotificationModule_InitLibrary() == NOTIFICATION_MODULE_RESULT_SUCCESS) {
