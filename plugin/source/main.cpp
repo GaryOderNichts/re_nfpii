@@ -220,7 +220,7 @@ WUPS_GET_CONFIG()
 
     WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_select_combination", "Quick Select Combo", currentQuickSelectCombination, quickSelectComboCallback);
 
-    WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_remove_combination", "Quick Remove Combo", currentQuickRemoveCombination, quickRemoveComboCallback);
+    WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_remove_combination", "Toggle Emulation Combo", currentQuickRemoveCombination, quickRemoveComboCallback);
 
     ConfigItemDumpAmiibo_AddToCategoryHandled(config, cat, "dump_amiibo", "Dump Amiibo", (TAG_EMULATION_PATH + "dumps").c_str());
 
