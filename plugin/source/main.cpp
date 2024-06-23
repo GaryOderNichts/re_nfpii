@@ -93,7 +93,7 @@ INITIALIZE_PLUGIN()
         }
 
         if ((err = WUPS_GetInt(nullptr, "toggleEmulationCombo", (int32_t*) &currentToggleEmulationCombination)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
-            WUPS_StoreInt(nullptr, "quickSelectCombo", currentToggleEmulationCombination);
+            WUPS_StoreInt(nullptr, "toggleEmulationCombo", currentToggleEmulationCombination);
         }
         
         if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
