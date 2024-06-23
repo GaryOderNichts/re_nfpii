@@ -92,6 +92,10 @@ INITIALIZE_PLUGIN()
             WUPS_StoreInt(nullptr, "quickSelectCombo", currentQuickSelectCombination);
         }
 
+        if ((err = WUPS_GetInt(nullptr, "toggleEmulationCombo", (int32_t*) &currentToggleEmulationCombination)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            WUPS_StoreInt(nullptr, "quickSelectCombo", currentToggleEmulationCombination);
+        }
+        
         if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
             DEBUG_FUNCTION_LINE("Failed to close storage");
         }
