@@ -13,7 +13,7 @@ extern "C" uint32_t VPADGetButtonProcMode(VPADChan chan);
 extern uint32_t currentQuickSelectCombination;
 static uint32_t currentQuickSelectIndex = 0;
 
-extern uint32_t currentQuickRemoveCombination;
+extern uint32_t currentToggleEmulationCombination;
 
 static uint32_t sWPADLastButtonHold[4];
 static uint32_t sWasHoldForXFrame[4];
@@ -78,7 +78,7 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus* buffer, uint32_t buf
             if (currentQuickSelectCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentQuickSelectCombination) == currentQuickSelectCombination)) {
                 found = true;
                 break;
-            } else if (currentQuickRemoveCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentQuickRemoveCombination) == currentQuickRemoveCombination)) {
+            } else if (currentToggleEmulationCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentToggleEmulationCombination) == currentToggleEmulationCombination)) {
                 foundTe = true;
                 break;
             }
@@ -126,7 +126,7 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController* data)
                         cycleQuickSelect();
                     }
                     sWasHoldForXFrame[chan]++;
-                } else if ((currentQuickRemoveCombination != 0 && (curButtonHold & currentQuickRemoveCombination) == currentQuickRemoveCombination)) {
+                } else if ((currentToggleEmulationCombination != 0 && (curButtonHold & currentToggleEmulationCombination) == currentToggleEmulationCombination)) {
                     if (sWasHoldForXFrame[chan] == 0) {
                         toggleEmulation();
                     }
