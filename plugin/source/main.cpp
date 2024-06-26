@@ -36,6 +36,7 @@ WUPS_USE_WUT_DEVOPTAB();
 uint32_t currentRemoveAfterOption = 0;
 
 uint32_t currentQuickSelectCombination = 0;
+uint32_t currentToggleEmulationCombination = 0;
 
 bool favoritesPerTitle = false;
 
@@ -91,6 +92,10 @@ INITIALIZE_PLUGIN()
             WUPS_StoreInt(nullptr, "quickSelectCombo", currentQuickSelectCombination);
         }
 
+        if ((err = WUPS_GetInt(nullptr, "toggleEmulationCombo", (int32_t*) &currentToggleEmulationCombination)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            WUPS_StoreInt(nullptr, "toggleEmulationCombo", currentToggleEmulationCombination);
+        }
+        
         if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
             DEBUG_FUNCTION_LINE("Failed to close storage");
         }
@@ -162,6 +167,12 @@ static void quickSelectComboCallback(ConfigItemButtonCombo* item, uint32_t newVa
     WUPS_StoreInt(nullptr, "quickSelectCombo", (int32_t) currentQuickSelectCombination);
 }
 
+static void toggleEmulationComboCallback(ConfigItemButtonCombo* item, uint32_t newValue)
+{
+    currentToggleEmulationCombination = newValue;
+    WUPS_StoreInt(nullptr, "toggleEmulationCombo", (int32_t) currentToggleEmulationCombination);
+}
+
 WUPS_GET_CONFIG()
 {
     if (WUPS_OpenStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -212,6 +223,8 @@ WUPS_GET_CONFIG()
     WUPSConfigItemBoolean_AddToCategoryHandled(config, cat, "favorites_per_title", "Per-Title Favorites", favoritesPerTitle, favoritesPerTitleCallback);
 
     WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_select_combination", "Quick Select Combo", currentQuickSelectCombination, quickSelectComboCallback);
+
+    WUPSConfigItemButtonCombo_AddToCategoryHandled(config, cat, "quick_remove_combination", "Toggle Emulation Combo", currentToggleEmulationCombination, toggleEmulationComboCallback);
 
     ConfigItemDumpAmiibo_AddToCategoryHandled(config, cat, "dump_amiibo", "Dump Amiibo", (TAG_EMULATION_PATH + "dumps").c_str());
 

@@ -13,6 +13,8 @@ extern "C" uint32_t VPADGetButtonProcMode(VPADChan chan);
 extern uint32_t currentQuickSelectCombination;
 static uint32_t currentQuickSelectIndex = 0;
 
+extern uint32_t currentToggleEmulationCombination;
+
 static uint32_t sWPADLastButtonHold[4];
 static uint32_t sWasHoldForXFrame[4];
 static uint32_t sWasHoldForXFrameGamePad;
@@ -40,6 +42,24 @@ static void cycleQuickSelect()
     }
 }
 
+
+static void toggleEmulation()
+{
+    NfpiiEmulationState state = NfpiiGetEmulationState();
+    std::string notifText;
+    if (state == NFPII_EMULATION_ON) {
+        NfpiiSetEmulationState(NFPII_EMULATION_OFF);
+        notifText = "re_nfpii: Disabled emulation";
+    } else {
+        NfpiiSetEmulationState(NFPII_EMULATION_ON);
+        notifText = "re_nfpii: Enabled emulation";
+    };
+
+    if (NotificationModule_InitLibrary() == NOTIFICATION_MODULE_RESULT_SUCCESS) {
+        NotificationModule_AddInfoNotification(notifText.c_str());
+    }
+}
+
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus* buffer, uint32_t buffer_size, VPADReadError* error)
 {
     VPADReadError real_error;
@@ -52,16 +72,25 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus* buffer, uint32_t buf
             end = result;
         }
         bool found = false;
+        bool foundTe = false;
 
         for (uint32_t i = 0; i < end; i++) {
             if (currentQuickSelectCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentQuickSelectCombination) == currentQuickSelectCombination)) {
                 found = true;
+                break;
+            } else if (currentToggleEmulationCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentToggleEmulationCombination) == currentToggleEmulationCombination)) {
+                foundTe = true;
                 break;
             }
         }
         if (found) {
             if (sWasHoldForXFrameGamePad == 0) {
                 cycleQuickSelect();
+            }
+            sWasHoldForXFrameGamePad++;
+        } else if (foundTe) {
+            if (sWasHoldForXFrameGamePad == 0) {
+                toggleEmulation();
             }
             sWasHoldForXFrameGamePad++;
         } else {
@@ -95,6 +124,11 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController* data)
                 if ((currentQuickSelectCombination != 0 && (curButtonHold & currentQuickSelectCombination) == currentQuickSelectCombination)) {
                     if (sWasHoldForXFrame[chan] == 0) {
                         cycleQuickSelect();
+                    }
+                    sWasHoldForXFrame[chan]++;
+                } else if ((currentToggleEmulationCombination != 0 && (curButtonHold & currentToggleEmulationCombination) == currentToggleEmulationCombination)) {
+                    if (sWasHoldForXFrame[chan] == 0) {
+                        toggleEmulation();
                     }
                     sWasHoldForXFrame[chan]++;
                 } else {
