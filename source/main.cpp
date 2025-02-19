@@ -80,7 +80,7 @@ NfpiiUUIDRandomizationState NfpiiGetUUIDRandomizationState(void)
 
 void NfpiiSetRemoveAfterSeconds(float seconds)
 {
-    LogHandler::Info("Module: Updated remote after seconds to: %.1fs", seconds);
+    LogHandler::Info("Module: Updated remove after seconds to: %.1fs", seconds);
 
     re::nfpii::tagManager.SetRemoveAfterSeconds(seconds);
 }
