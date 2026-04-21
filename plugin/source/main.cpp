@@ -126,6 +126,8 @@ ON_APPLICATION_START()
     } else {
         DEBUG_FUNCTION_LINE("Failed to open storage");
     }
+
+    NfpiiSetPluginloaded();
 }
 
 static void stateChangedCallback(ConfigItemMultipleValues* values, uint32_t index)
