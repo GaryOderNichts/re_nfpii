@@ -4,3 +4,4 @@ dist/
 *.elf
 *.wps
 *.wms
+.idea/

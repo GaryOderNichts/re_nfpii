@@ -1,27 +1,112 @@
+#include "quick_select.h"
+
+#include <forward_list>
 #include <wups.h>
 #include <nfpii.h>
-#include <vpad/input.h>
-#include <padscore/wpad.h>
 #include <notifications/notifications.h>
+#include <wups/button_combo/api.h>
 
 #include "config/ConfigItemSelectAmiibo.hpp"
-#include "utils/input.h"
 #include "debug/logger.h"
 
-extern "C" uint32_t VPADGetButtonProcMode(VPADChan chan);
-
-extern uint32_t currentQuickSelectCombination;
 static uint32_t currentQuickSelectIndex = 0;
 
-extern uint32_t currentToggleEmulationCombination;
+WUPSButtonCombo_ComboHandle sQuickSelectButtonComboHandle(nullptr);
+WUPSButtonCombo_ComboHandle sToggleEmulationButtonComboHandle(nullptr);
+static std::forward_list<WUPSButtonComboAPI::ButtonCombo> sButtonComboInstances;
 
-static uint32_t sWPADLastButtonHold[4];
-static uint32_t sWasHoldForXFrame[4];
-static uint32_t sWasHoldForXFrameGamePad;
+extern WUPSButtonCombo_Buttons currentQuickSelectCombination;
+extern WUPSButtonCombo_Buttons currentToggleEmulationCombination;
 
-static void cycleQuickSelect()
+
+static uint32_t migrateButtonCombo(const uint32_t buttons)
 {
-    if (ConfigItemSelectAmiibo_GetFavorites().size() == 0) {
+    uint32_t conv_buttons = 0;
+
+    if (buttons & VPAD_BUTTON_A) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_A;
+    }
+    if (buttons & VPAD_BUTTON_B) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_B;
+    }
+    if (buttons & VPAD_BUTTON_X) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_X;
+    }
+    if (buttons & VPAD_BUTTON_Y) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_Y;
+    }
+
+    if (buttons & VPAD_BUTTON_LEFT) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_LEFT;
+    }
+    if (buttons & VPAD_BUTTON_RIGHT) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_RIGHT;
+    }
+    if (buttons & VPAD_BUTTON_UP) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_UP;
+    }
+    if (buttons & VPAD_BUTTON_DOWN) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_DOWN;
+    }
+
+    if (buttons & VPAD_BUTTON_ZL) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_ZL;
+    }
+    if (buttons & VPAD_BUTTON_ZR) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_ZR;
+    }
+
+    if (buttons & VPAD_BUTTON_L) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_L;
+    }
+    if (buttons & VPAD_BUTTON_R) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_R;
+    }
+
+    if (buttons & VPAD_BUTTON_PLUS) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_PLUS;
+    }
+    if (buttons & VPAD_BUTTON_MINUS) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_MINUS;
+    }
+
+    if (buttons & VPAD_BUTTON_STICK_R) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_STICK_R;
+    }
+    if (buttons & VPAD_BUTTON_STICK_L) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_STICK_L;
+    }
+
+    if (buttons & VPAD_BUTTON_TV) {
+        conv_buttons |= WUPS_BUTTON_COMBO_BUTTON_TV;
+    }
+
+    return conv_buttons;
+}
+
+
+void migrateStorage()
+{
+    uint32_t oldButtonCombo = 0;
+    if (WUPSStorageAPI::Get(BUTTON_COMBO_QUICK_SELECT_CONFIG_ID_DEPRECATED, oldButtonCombo) == WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE("Found deprecated config in storage. Storage will be migrated");
+        currentQuickSelectCombination = static_cast<WUPSButtonCombo_Buttons>(migrateButtonCombo(oldButtonCombo));
+        if (WUPSStorageAPI::DeleteItem(BUTTON_COMBO_QUICK_SELECT_CONFIG_ID_DEPRECATED) != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE("Failed to delete deprecated value: \"%s\" from storage", BUTTON_COMBO_QUICK_SELECT_CONFIG_ID_DEPRECATED);
+        }
+    }
+    if (WUPSStorageAPI::Get(BUTTON_COMBO_TOGGLE_EMULATION_CONFIG_ID_DEPRECATED, oldButtonCombo) == WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE("Found deprecated config in storage. Storage will be migrated");
+        currentToggleEmulationCombination = static_cast<WUPSButtonCombo_Buttons>(migrateButtonCombo(oldButtonCombo));
+        if (WUPSStorageAPI::DeleteItem(BUTTON_COMBO_TOGGLE_EMULATION_CONFIG_ID_DEPRECATED) != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE("Failed to delete deprecated value: \"%s\" from storage", BUTTON_COMBO_TOGGLE_EMULATION_CONFIG_ID_DEPRECATED);
+        }
+    }
+}
+
+static void cycleQuickSelect(WUPSButtonCombo_ControllerTypes, WUPSButtonCombo_ComboHandle, void*)
+{
+    if (ConfigItemSelectAmiibo_GetFavorites().empty()) {
         return;
     }
 
@@ -34,7 +119,7 @@ static void cycleQuickSelect()
     NfpiiSetTagEmulationPath(path.c_str());
     NfpiiSetEmulationState(NFPII_EMULATION_ON);
 
-    std::string name = path.substr(path.find_last_of("/") + 1);
+    std::string name = path.substr(path.find_last_of('/') + 1);
     std::string notifText = "re_nfpii: Selected \"" + name + "\"";
 
     if (NotificationModule_InitLibrary() == NOTIFICATION_MODULE_RESULT_SUCCESS) {
@@ -43,7 +128,7 @@ static void cycleQuickSelect()
 }
 
 
-static void toggleEmulation()
+static void toggleEmulation(WUPSButtonCombo_ControllerTypes, WUPSButtonCombo_ComboHandle, void*)
 {
     NfpiiEmulationState state = NfpiiGetEmulationState();
     std::string notifText;
@@ -60,86 +145,56 @@ static void toggleEmulation()
     }
 }
 
-DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus* buffer, uint32_t buffer_size, VPADReadError* error)
+
+template <typename... Args>
+std::string string_format(const std::string& format, Args... args)
 {
-    VPADReadError real_error;
-    int32_t result = real_VPADRead(chan, buffer, buffer_size, &real_error);
-
-    if (result > 0 && real_error == VPAD_READ_SUCCESS) {
-        uint32_t end = 1;
-        // Fix games like TP HD
-        if (VPADGetButtonProcMode(chan) == 1) {
-            end = result;
-        }
-        bool found = false;
-        bool foundTe = false;
-
-        for (uint32_t i = 0; i < end; i++) {
-            if (currentQuickSelectCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentQuickSelectCombination) == currentQuickSelectCombination)) {
-                found = true;
-                break;
-            } else if (currentToggleEmulationCombination != 0 && (((buffer[i].hold & 0x000FFFFF) & currentToggleEmulationCombination) == currentToggleEmulationCombination)) {
-                foundTe = true;
-                break;
-            }
-        }
-        if (found) {
-            if (sWasHoldForXFrameGamePad == 0) {
-                cycleQuickSelect();
-            }
-            sWasHoldForXFrameGamePad++;
-        } else if (foundTe) {
-            if (sWasHoldForXFrameGamePad == 0) {
-                toggleEmulation();
-            }
-            sWasHoldForXFrameGamePad++;
-        } else {
-            sWasHoldForXFrameGamePad = 0;
-        }
-    }
-
-    if (error) {
-        *error = real_error;
-    }
-    return result;
+    int size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
+    auto size = static_cast<size_t>(size_s);
+    auto buf = std::make_unique<char[]>(size);
+    std::snprintf(buf.get(), size, format.c_str(), args...);
+    return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController* data)
+WUPSButtonCombo_ComboHandle RegisterButtonCombo(const std::string_view label, const WUPSButtonCombo_Buttons buttonCombo,
+    const WUPSButtonCombo_ComboCallback callback)
 {
-    real_WPADRead(chan, data);
-
-    if (chan >= 0 && chan < 4) {
-        if (data[0].err == 0) {
-            if (data[0].extensionType != 0xFF) {
-                uint32_t curButtonHold = 0;
-                if (data[0].extensionType == WPAD_EXT_CORE || data[0].extensionType == WPAD_EXT_NUNCHUK) {
-                    // button data is in the first 2 bytes for wiimotes
-                    curButtonHold = remapWiiMoteButtons(((uint16_t *) data)[0]);
-                } else if (data[0].extensionType == WPAD_EXT_CLASSIC) {
-                    curButtonHold = remapClassicButtons(((uint32_t *) data)[10] & 0xFFFF);
-                } else if (data[0].extensionType == WPAD_EXT_PRO_CONTROLLER) {
-                    curButtonHold = remapProButtons(data[0].buttons);
-                }
-
-                if ((currentQuickSelectCombination != 0 && (curButtonHold & currentQuickSelectCombination) == currentQuickSelectCombination)) {
-                    if (sWasHoldForXFrame[chan] == 0) {
-                        cycleQuickSelect();
-                    }
-                    sWasHoldForXFrame[chan]++;
-                } else if ((currentToggleEmulationCombination != 0 && (curButtonHold & currentToggleEmulationCombination) == currentToggleEmulationCombination)) {
-                    if (sWasHoldForXFrame[chan] == 0) {
-                        toggleEmulation();
-                    }
-                    sWasHoldForXFrame[chan]++;
-                } else {
-                    sWasHoldForXFrame[chan] = 0;
-                }
-
-                sWPADLastButtonHold[chan] = curButtonHold;
-            }
+    const auto buttonComboLabel = string_format("re_nfpii: %s", label.data());
+    WUPSButtonCombo_ComboStatus status = WUPS_BUTTON_COMBO_COMBO_STATUS_INVALID_STATUS;
+    WUPSButtonCombo_Error err = WUPS_BUTTON_COMBO_ERROR_UNKNOWN_ERROR;
+    auto res = WUPSButtonComboAPI::CreateComboPressDown(buttonComboLabel,
+                                                        buttonCombo,
+                                                        callback,
+                                                        nullptr,
+                                                        status,
+                                                        err);
+    if (!res || err != WUPS_BUTTON_COMBO_ERROR_SUCCESS) {
+        if (buttonCombo != 0) { // Old button combo module doesn't support empty button combos
+            const std::string errorMsg = string_format("re_nfpii: Failed to register button combo \"%s\"", label.data());
+            DEBUG_FUNCTION_LINE("%s", errorMsg.c_str());
+            NotificationModule_AddErrorNotification(errorMsg.c_str());
         }
+    } else {
+        if (status == WUPS_BUTTON_COMBO_COMBO_STATUS_CONFLICT) {
+            const auto conflictMsg = string_format("re_nfpii: \"%s\"-combo was disabled due to a conflict. Please assign a different combo", label.data());
+            DEBUG_FUNCTION_LINE("%s", conflictMsg.c_str());
+
+            NotificationModule_AddInfoNotification(conflictMsg.c_str());
+        } else if (status != WUPS_BUTTON_COMBO_COMBO_STATUS_VALID) {
+            const auto conflictMsg = string_format("re_nfpii: Unknown error happened while registering button combo \"%s\"", label.data());
+            DEBUG_FUNCTION_LINE("%s", conflictMsg.c_str());
+
+            NotificationModule_AddInfoNotification(conflictMsg.c_str());
+        }
+        const auto handle = res->getHandle();
+        sButtonComboInstances.emplace_front(std::move(*res));
+        return handle;
     }
+    return WUPSButtonCombo_ComboHandle(nullptr);
 }
 
-WUPS_MUST_REPLACE(VPADRead, WUPS_LOADER_LIBRARY_VPAD, VPADRead);
-WUPS_MUST_REPLACE(WPADRead, WUPS_LOADER_LIBRARY_PADSCORE, WPADRead);
+void RegisterButtonCombos()
+{
+    sQuickSelectButtonComboHandle = RegisterButtonCombo("Quick Select", currentQuickSelectCombination, cycleQuickSelect);
+    sToggleEmulationButtonComboHandle = RegisterButtonCombo("Toggle Emulation", currentToggleEmulationCombination, toggleEmulation);
+}

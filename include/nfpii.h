@@ -52,6 +52,8 @@ NFCError NfpiiQueueNFCGetTagInfo(NFCGetTagInfoCallbackFn callback, void* arg);
 
 void NfpiiSetLogHandler(NfpiiLogHandler handler);
 
+void NfpiiSetPluginLoaded();
+
 #ifdef __cplusplus
 }
 #endif

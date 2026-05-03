@@ -12,6 +12,10 @@
 #include <coreinit/thread.h>
 #include <coreinit/time.h>
 #include <coreinit/debug.h>
+#include <sys/stat.h>
+#include <sys/syslimits.h>
+
+#include "debug/logger.h"
 
 #define COLOR_BACKGROUND         Color(238, 238, 238, 255)
 #define COLOR_TEXT               Color(51, 51, 51, 255)
@@ -23,10 +27,10 @@
 
 #define TIMEOUT_SECONDS 10
 
-static void _mkdir(const char *dir)
+static void _mkdir(const char* dir)
 {
     char tmp[PATH_MAX];
-    char *p = NULL;
+    char* p = NULL;
     size_t len;
 
     strncpy(tmp, dir, sizeof(tmp) - 1);
@@ -52,7 +56,7 @@ static void _mkdir(const char *dir)
     mkdir(tmp, S_IRWXU);
 }
 
-static void ntagReadCallback(VPADChan chan, NTAGError error, NFCTagInfo *tagInfo, NTAGRawDataContainerT2T *rawData, void *userContext)
+static void ntagReadCallback(VPADChan chan, NTAGError error, NFCTagInfo* tagInfo, NTAGRawDataContainerT2T* rawData, void* userContext)
 {
     ConfigItemDumpAmiibo* item = (ConfigItemDumpAmiibo*) userContext;
 
@@ -62,15 +66,15 @@ static void ntagReadCallback(VPADChan chan, NTAGError error, NFCTagInfo *tagInfo
 
         OSTicksToCalendarTime(OSGetTime(), &ct);
         snprintf(filePath, PATH_MAX, "%s/%04d-%02d-%02d_%02d-%02d-%02d_%02X%02X%02X%02X%02X%02X%02X.bin", item->dumpFolder.c_str(),
-            ct.tm_year, ct.tm_mon + 1, ct.tm_mday, ct.tm_hour, ct.tm_min, ct.tm_sec,
-            tagInfo->uid[0], tagInfo->uid[1], tagInfo->uid[2], tagInfo->uid[3], tagInfo->uid[4], tagInfo->uid[5], tagInfo->uid[6]);
+                 ct.tm_year, ct.tm_mon + 1, ct.tm_mday, ct.tm_hour, ct.tm_min, ct.tm_sec,
+                 tagInfo->uid[0], tagInfo->uid[1], tagInfo->uid[2], tagInfo->uid[3], tagInfo->uid[4], tagInfo->uid[5], tagInfo->uid[6]);
 
         item->lastDumpPath = filePath;
 
         FILE* f = fopen(filePath, "wb");
         if (!f) {
             item->state = DUMP_STATE_ERROR;
-            return; 
+            return;
         }
 
         fwrite(&rawData->data, 1, rawData->size, f);
@@ -87,7 +91,7 @@ static void ntagReadCallback(VPADChan chan, NTAGError error, NFCTagInfo *tagInfo
     }
 }
 
-static void ntagAbortCallback(VPADChan chan, NTAGError error, void *userContext)
+static void ntagAbortCallback(VPADChan chan, NTAGError error, void* userContext)
 {
     ConfigItemDumpAmiibo* item = (ConfigItemDumpAmiibo*) userContext;
 
@@ -119,7 +123,7 @@ static void enterDumpMenu(ConfigItemDumpAmiibo* item)
     OSTick readStart = 0;
 
     while (true) {
-        refresh: ;
+    refresh: ;
 
         uint32_t buttonsTriggered = 0;
 
@@ -130,7 +134,7 @@ static void enterDumpMenu(ConfigItemDumpAmiibo* item)
 
         // read kpads and remap the buttons we need
         for (int i = 0; i < 4; i++) {
-            if (KPADReadEx((KPADChan) i, &kpad, 1, &kpadError) > 0) {
+            if (KPADReadEx((KPADChan)i, &kpad, 1, &kpadError) > 0) {
                 if (kpadError != KPAD_ERROR_OK) {
                     continue;
                 }
@@ -311,16 +315,15 @@ static void enterDumpMenu(ConfigItemDumpAmiibo* item)
     }
 }
 
-static bool ConfigItemDumpAmiibo_callCallback(void* context)
+static void ConfigItemDumpAmiibo_onCloseCallback(void*)
 {
-    return true;
 }
 
-static void ConfigItemDumpAmiibo_onButtonPressed(void* context, WUPSConfigButtons buttons)
+static void ConfigItemDumpAmiibo_onInput(void* context, WUPSConfigSimplePadData buttons)
 {
     ConfigItemDumpAmiibo* item = (ConfigItemDumpAmiibo*) context;
 
-    if (buttons & WUPS_CONFIG_BUTTON_A) {
+    if (buttons.buttons_d & WUPS_CONFIG_BUTTON_A) {
         enterDumpMenu(item);
     }
 }
@@ -344,25 +347,20 @@ static void ConfigItemDumpAmiibo_onSelected(void* context, bool isSelected)
 {
 }
 
-
 static void ConfigItemDumpAmiibo_onDelete(void* context)
 {
     ConfigItemDumpAmiibo* item = (ConfigItemDumpAmiibo*) context;
 
     free(item->configID);
-    
+
     delete item;
 }
 
-bool ConfigItemDumpAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName, const char* dumpFolder)
+WUPSConfigAPIStatus ConfigItemDumpAmiibo_Create(const char* configID, const char* displayName, const char* dumpFolder, WUPSConfigItemHandle* outHandle)
 {
-    if (!cat) {
-        return false;
-    }
-
-    ConfigItemDumpAmiibo* item = new ConfigItemDumpAmiibo;
+    auto* item = new(std::nothrow) ConfigItemDumpAmiibo;
     if (!item) {
-        return false;
+        return WUPSCONFIG_API_RESULT_OUT_OF_MEMORY;
     }
 
     if (configID) {
@@ -375,26 +373,72 @@ bool ConfigItemDumpAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char
     item->wasInit = false;
     item->dumpFolder = dumpFolder;
 
-    WUPSConfigCallbacks_t callbacks = {
-        .getCurrentValueDisplay         = &ConfigItemDumpAmiibo_getCurrentValueDisplay,
+    WUPSConfigAPIItemCallbacksV2 callbacks = {
+        .getCurrentValueDisplay = &ConfigItemDumpAmiibo_getCurrentValueDisplay,
         .getCurrentValueSelectedDisplay = &ConfigItemDumpAmiibo_getCurrentValueDisplay,
-        .onSelected                     = &ConfigItemDumpAmiibo_onSelected,
-        .restoreDefault                 = &ConfigItemDumpAmiibo_restoreDefault,
-        .isMovementAllowed              = &ConfigItemDumpAmiibo_isMovementAllowed,
-        .callCallback                   = &ConfigItemDumpAmiibo_callCallback,
-        .onButtonPressed                = &ConfigItemDumpAmiibo_onButtonPressed,
-        .onDelete                       = &ConfigItemDumpAmiibo_onDelete
+        .onSelected = &ConfigItemDumpAmiibo_onSelected,
+        .restoreDefault = &ConfigItemDumpAmiibo_restoreDefault,
+        .isMovementAllowed = &ConfigItemDumpAmiibo_isMovementAllowed,
+        .onCloseCallback = &ConfigItemDumpAmiibo_onCloseCallback,
+        .onInput = &ConfigItemDumpAmiibo_onInput,
+        .onInputEx = nullptr,
+        .onDelete = &ConfigItemDumpAmiibo_onDelete
+    };
+    const WUPSConfigAPIItemOptionsV2 options = {
+        .displayName = displayName,
+        .context = item,
+        .callbacks = callbacks,
     };
 
-    if (WUPSConfigItem_Create(&item->handle, configID, displayName, callbacks, item) < 0) {
-        delete item;
-        return false;
+    WUPSConfigAPIStatus err = WUPSConfigAPI_Item_Create(options, &item->handle);
+    if (err != WUPSCONFIG_API_RESULT_SUCCESS) {
+        DEBUG_FUNCTION_LINE("Failed to create config item.\n");
+        ConfigItemDumpAmiibo_onDelete(item);
+        return err;
     }
 
-    if (WUPSConfigCategory_AddItem(cat, item->handle) < 0) {
-        return false;
-    }
-
-    return true;
+    *outHandle = item->handle;
+    return WUPSCONFIG_API_RESULT_SUCCESS;
 }
 
+WUPSConfigAPIStatus ConfigItemDumpAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName, const char* dumpFolder)
+{
+    WUPSConfigItemHandle itemHandle;
+    WUPSConfigAPIStatus res;
+    if ((res = ConfigItemDumpAmiibo_Create(configID,
+                                           displayName,
+                                           dumpFolder,
+                                           &itemHandle)) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        return res;
+    }
+
+    if ((res = WUPSConfigAPI_Category_AddItem(cat, itemHandle)) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        WUPSConfigAPI_Item_Destroy(itemHandle);
+        return res;
+    }
+    return WUPSCONFIG_API_RESULT_SUCCESS;
+}
+
+std::optional<ConfigItemDumpAmiiboCPP> ConfigItemDumpAmiiboCPP::Create(std::optional<std::string> identifier, std::string_view displayName, const char* dumpFolder, WUPSConfigAPIStatus& err) noexcept
+{
+    WUPSConfigItemHandle itemHandle;
+    if ((err = ConfigItemDumpAmiibo_Create(identifier ? identifier->data() : nullptr,
+                                           displayName.data(),
+                                           dumpFolder,
+                                           &itemHandle)) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        return std::nullopt;
+    }
+
+    return ConfigItemDumpAmiiboCPP(itemHandle);
+}
+
+ConfigItemDumpAmiiboCPP ConfigItemDumpAmiiboCPP::Create(std::optional<std::string> identifier, std::string_view displayName, const char* dumpFolder)
+{
+    WUPSConfigAPIStatus err;
+    auto result = Create(std::move(identifier), displayName, dumpFolder, err);
+    if (!result) {
+        throw std::runtime_error(std::string("Failed to create ConfigItemDumpAmiiboCPP: ").append(WUPSConfigAPI_GetStatusStr(err)));
+    }
+
+    return std::move(*result);
+}

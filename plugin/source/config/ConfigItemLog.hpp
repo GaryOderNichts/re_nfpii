@@ -15,12 +15,22 @@ void ConfigItemLog_Init(void);
 
 void ConfigItemLog_PrintType(LogType type, const char* text);
 
-bool ConfigItemLog_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName);
+WUPSConfigAPIStatus ConfigItemLog_Create(const char* configID, const char* displayName, WUPSConfigItemHandle* outHandle);
 
-#define ConfigItemLog_AddToCategoryHandled(__config__, __cat__, __configID__, __displayName__)  \
-    do {                                                                                        \
-        if (!ConfigItemLog_AddToCategory(__cat__, __configID__, __displayName__)) {             \
-            WUPSConfig_Destroy(__config__);                                                     \
-            return 0;                                                                           \
-        }                                                                                       \
-    } while (0)
+WUPSConfigAPIStatus ConfigItemLog_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName);
+
+class ConfigItemLogCPP : public WUPSConfigItem
+{
+public:
+    static std::optional<ConfigItemLogCPP> Create(std::optional<std::string> identifier,
+                                                  std::string_view displayName,
+                                                  WUPSConfigAPIStatus& err) noexcept;
+
+    static ConfigItemLogCPP Create(std::optional<std::string> identifier,
+                                   std::string_view displayName);
+
+private:
+    explicit ConfigItemLogCPP(WUPSConfigItemHandle itemHandle) : WUPSConfigItem(itemHandle)
+    {
+    }
+};

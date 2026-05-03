@@ -16,16 +16,36 @@ struct ConfigItemSelectAmiibo {
     std::string selectedAmiibo;
 };
 
-std::vector<std::string>& ConfigItemSelectAmiibo_GetFavorites(void);
+std::vector<std::string>& ConfigItemSelectAmiibo_GetFavorites();
 
 void ConfigItemSelectAmiibo_Init(std::string rootPath, bool favoritesPerTitle);
 
-bool ConfigItemSelectAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName, const char* amiiboFolder, const char* currentAmiibo, AmiiboSelectedCallback callback);
 
-#define ConfigItemSelectAmiibo_AddToCategoryHandled(__config__, __cat__, __configID__, __displayName__, __amiiboFolder__, __currentAmiibo__, __callback__)  \
-    do {                                                                                                                                                    \
-        if (!ConfigItemSelectAmiibo_AddToCategory(__cat__, __configID__, __displayName__, __amiiboFolder__, __currentAmiibo__, __callback__)) {             \
-            WUPSConfig_Destroy(__config__);                                                                                                                 \
-            return 0;                                                                                                                                       \
-        }                                                                                                                                                   \
-    } while (0)
+WUPSConfigAPIStatus ConfigItemSelectAmiibo_Create(const char* configID, const char* displayName,
+                                                  const char* amiiboFolder, const char* currentAmiibo,
+                                                  AmiiboSelectedCallback callback,
+                                                  WUPSConfigItemHandle* outHandle);
+
+WUPSConfigAPIStatus ConfigItemSelectAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName,
+                                                         const char* amiiboFolder, const char* currentAmiibo,
+                                                         AmiiboSelectedCallback callback);
+
+class ConfigItemSelectAmiiboCPP : public WUPSConfigItem
+{
+public:
+    static std::optional<ConfigItemSelectAmiiboCPP> Create(std::optional<std::string> identifier,
+                                                           std::string_view displayName,
+                                                           const char* amiiboFolder, const char* currentAmiibo,
+                                                           AmiiboSelectedCallback callback,
+                                                           WUPSConfigAPIStatus& err) noexcept;
+
+    static ConfigItemSelectAmiiboCPP Create(std::optional<std::string> identifier,
+                                            std::string_view displayName,
+                                            const char* amiiboFolder, const char* currentAmiibo,
+                                            AmiiboSelectedCallback callback);
+
+private:
+    explicit ConfigItemSelectAmiiboCPP(WUPSConfigItemHandle itemHandle) : WUPSConfigItem(itemHandle)
+    {
+    }
+};

@@ -18,12 +18,26 @@ struct ConfigItemDumpAmiibo {
     std::string lastDumpPath;
 };
 
-bool ConfigItemDumpAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName, const char* dumpFolder);
+WUPSConfigAPIStatus ConfigItemDumpAmiibo_Create(const char* configID, const char* displayName, const char* dumpFolder, WUPSConfigItemHandle* outHandle);
 
-#define ConfigItemDumpAmiibo_AddToCategoryHandled(__config__, __cat__, __configID__, __displayName__, __dumpFolder__)  \
-    do {                                                                                                               \
-        if (!ConfigItemDumpAmiibo_AddToCategory(__cat__, __configID__, __displayName__, __dumpFolder__)) {             \
-            WUPSConfig_Destroy(__config__);                                                                            \
-            return 0;                                                                                                  \
-        }                                                                                                              \
-    } while (0)
+
+WUPSConfigAPIStatus ConfigItemDumpAmiibo_AddToCategory(WUPSConfigCategoryHandle cat, const char* configID, const char* displayName,
+                                                       const char* dumpFolder);
+
+class ConfigItemDumpAmiiboCPP : public WUPSConfigItem
+{
+public:
+    static std::optional<ConfigItemDumpAmiiboCPP> Create(std::optional<std::string> identifier,
+                                                         std::string_view displayName,
+                                                         const char* dumpFolder,
+                                                         WUPSConfigAPIStatus& err) noexcept;
+
+    static ConfigItemDumpAmiiboCPP Create(std::optional<std::string> identifier,
+                                          std::string_view displayName,
+                                          const char* dumpFolder);
+
+private:
+    explicit ConfigItemDumpAmiiboCPP(WUPSConfigItemHandle itemHandle) : WUPSConfigItem(itemHandle)
+    {
+    }
+};
